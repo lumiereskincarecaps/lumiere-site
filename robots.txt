@@ -1,0 +1,27 @@
+User-agent: *
+Allow: /
+Disallow: /portal.html
+Disallow: /admin.html
+Disallow: /checkout.html
+Disallow: /api/
+
+# AI crawlers — explicitly allow for GEO/AIO discovery
+User-agent: GPTBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: Claude-Web
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+Sitemap: https://lumiereskincarecaps.com/sitemap.xml

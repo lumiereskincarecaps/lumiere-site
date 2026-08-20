@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Lumière Ambassador Program — Recruitment Flyer</title>
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#1a1a1a;--ink-soft:#3a3a38;--paper:#faf7f2;--cream:#f3ede2;
+    --champagne:#d4b896;--gold:#b8935a;--gold-deep:#8b6f3f;
+    --green:#5d8a4a;--line:rgba(26,26,26,0.1);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Inter',sans-serif;color:var(--ink);background:#e8e2d5;line-height:1.5;font-weight:300;-webkit-font-smoothing:antialiased;padding:2rem 1rem}
+  h1,h2,h3{font-family:'Cormorant Garamond',serif;font-weight:400;line-height:1.08}
+
+  /* Print controls (hidden when printing) */
+  .print-bar{max-width:820px;margin:0 auto 1.5rem;display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap}
+  .print-bar p{font-size:0.85rem;color:var(--ink-soft)}
+  .print-btn{padding:0.85rem 1.8rem;border-radius:50px;border:none;cursor:pointer;background:var(--ink);color:var(--paper);font-size:0.75rem;letter-spacing:0.15em;text-transform:uppercase;font-weight:600;font-family:'Inter',sans-serif}
+  .print-btn:hover{background:var(--gold-deep)}
+
+  /* THE FLYER — US Letter proportions */
+  .flyer{
+    max-width:820px;margin:0 auto;background:var(--paper);
+    box-shadow:0 30px 80px rgba(0,0,0,0.2);
+    overflow:hidden;
+  }
+
+  /* Header band */
+  .fl-head{
+    background:linear-gradient(135deg,#1f1f1f,#0a0a0a);color:var(--paper);
+    padding:3rem 3rem 2.5rem;text-align:center;position:relative;overflow:hidden;
+  }
+  .fl-head::before{content:'';position:absolute;width:400px;height:400px;border-radius:50%;background:radial-gradient(circle,rgba(212,184,150,0.25),transparent 70%);top:-200px;right:-100px}
+  .fl-head > *{position:relative}
+  .fl-brand{font-family:'Cormorant Garamond',serif;font-size:2.2rem;letter-spacing:0.35em;font-weight:500;margin-bottom:0.3rem}
+  .fl-brand span{color:var(--champagne)}
+  .fl-sub{font-size:0.68rem;letter-spacing:0.4em;text-transform:uppercase;color:var(--champagne);font-weight:600;margin-bottom:1.6rem}
+  .fl-head h1{font-size:2.9rem;font-weight:300;margin-bottom:0.8rem}
+  .fl-head h1 em{font-style:italic;color:var(--champagne)}
+  .fl-head p{color:rgba(248,245,238,0.85);font-size:1rem;max-width:520px;margin:0 auto}
+  .fl-earn-badge{
+    display:inline-block;margin-top:1.4rem;
+    background:linear-gradient(135deg,var(--gold-deep),var(--champagne));
+    padding:0.7rem 1.8rem;border-radius:50px;
+    font-size:0.85rem;letter-spacing:0.15em;text-transform:uppercase;font-weight:700;
+  }
+  .fl-earn-badge b{font-family:'Cormorant Garamond',serif;font-size:1.3rem;font-style:italic}
+
+  /* Products strip */
+  .fl-products{padding:2.2rem 3rem;background:var(--cream)}
+  .fl-sec-title{text-align:center;font-size:0.68rem;letter-spacing:0.3em;text-transform:uppercase;color:var(--gold-deep);font-weight:700;margin-bottom:1.4rem}
+  .fl-prod-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem}
+  .fl-prod{background:var(--paper);border-radius:12px;overflow:hidden;border:1px solid var(--line);text-align:center}
+  .fl-prod-img{height:130px;background:linear-gradient(160deg,#fffdf9,#f0e6d4);display:flex;align-items:center;justify-content:center;overflow:hidden}
+  .fl-prod-img img{width:100%;height:100%;object-fit:cover;display:block}
+  .fl-prod-img svg{width:70%;height:70%}
+  .fl-prod-info{padding:0.8rem 0.6rem}
+  .fl-prod-name{font-weight:600;font-size:0.78rem;line-height:1.3}
+  .fl-prod-price{font-family:'Cormorant Garamond',serif;font-size:1.25rem;font-weight:500;color:var(--gold-deep);font-style:italic}
+  .fl-prod-earn{font-size:0.62rem;color:var(--green);font-weight:700;text-transform:uppercase;letter-spacing:0.06em}
+
+  /* Middle: tiers + details two-column */
+  .fl-mid{display:grid;grid-template-columns:1.05fr 1fr;gap:0;border-top:1px solid var(--line)}
+  .fl-tiers{padding:2.2rem 2.5rem;border-right:1px solid var(--line)}
+  .fl-tiers h2{font-size:1.6rem;margin-bottom:1.2rem}
+  .fl-tier-row{display:grid;grid-template-columns:auto 1fr auto;gap:1rem;align-items:center;padding:0.9rem 0;border-bottom:1px dashed var(--line)}
+  .fl-tier-row:last-child{border-bottom:none}
+  .fl-tier-medal{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Cormorant Garamond',serif;font-weight:600;color:var(--paper);font-size:0.85rem}
+  .m-bronze{background:linear-gradient(135deg,#cb9b6c,#8b6f3f)}
+  .m-silver{background:linear-gradient(135deg,#c8c8c8,#888)}
+  .m-gold{background:linear-gradient(135deg,#e8c873,#a88a3a)}
+  .fl-tier-name{font-weight:700;font-size:0.92rem}
+  .fl-tier-req{font-size:0.72rem;color:var(--ink-soft)}
+  .fl-tier-pct{font-family:'Cormorant Garamond',serif;font-size:2rem;font-style:italic;font-weight:500;color:var(--gold-deep)}
+
+  .fl-example{margin-top:1.4rem;background:linear-gradient(135deg,#f0f5ec,#e3ebd9);border-radius:12px;padding:1.2rem;border:1px solid rgba(93,138,74,0.3)}
+  .fl-example .ex-title{font-size:0.62rem;text-transform:uppercase;letter-spacing:0.2em;color:var(--green);font-weight:700;margin-bottom:0.5rem}
+  .fl-example p{font-size:0.8rem;line-height:1.6}
+  .fl-example b{color:var(--green)}
+
+  .fl-details{padding:2.2rem 2.5rem}
+  .fl-details h2{font-size:1.6rem;margin-bottom:1.2rem}
+  .fl-perk{display:flex;gap:0.8rem;align-items:flex-start;padding:0.55rem 0}
+  .fl-perk .dot{width:22px;height:22px;border-radius:50%;background:var(--gold-deep);color:var(--paper);display:flex;align-items:center;justify-content:center;font-size:0.7rem;flex-shrink:0;margin-top:0.1rem}
+  .fl-perk p{font-size:0.85rem;line-height:1.5}
+  .fl-perk b{font-weight:600}
+
+  /* Footer band */
+  .fl-foot{
+    background:linear-gradient(135deg,var(--gold-deep),var(--gold),var(--champagne));
+    color:var(--paper);padding:2.2rem 3rem;
+    display:grid;grid-template-columns:1fr auto;gap:2rem;align-items:center;
+  }
+  .fl-foot h2{color:var(--paper);font-size:1.8rem;font-style:italic;margin-bottom:0.4rem}
+  .fl-foot p{font-size:0.9rem;color:rgba(250,247,242,0.95)}
+  .fl-foot .apply-url{font-family:'JetBrains Mono',monospace;font-size:1rem;font-weight:500;background:rgba(0,0,0,0.25);padding:0.6rem 1.2rem;border-radius:8px;display:inline-block;margin-top:0.7rem}
+  .fl-qr{width:110px;height:110px;background:var(--paper);border-radius:12px;padding:8px;flex-shrink:0}
+  .fl-qr svg{width:100%;height:100%}
+  .fl-contact{padding:1rem 3rem;background:var(--ink);color:rgba(248,245,238,0.8);text-align:center;font-size:0.75rem;letter-spacing:0.06em}
+  .fl-contact b{color:var(--champagne)}
+
+  /* PRINT */
+  @media print{
+    body{background:#fff;padding:0}
+    .print-bar{display:none}
+    .flyer{box-shadow:none;max-width:100%}
+    @page{margin:0;size:letter}
+  }
+  @media(max-width:700px){
+    .fl-mid{grid-template-columns:1fr}
+    .fl-tiers{border-right:none;border-bottom:1px solid var(--line)}
+    .fl-prod-grid{grid-template-columns:repeat(2,1fr)}
+    .fl-foot{grid-template-columns:1fr;text-align:center}
+    .fl-qr{margin:0 auto}
+  }
+</style>
+</head>
+<body>
+
+<div class="print-bar">
+  <p><strong>Recruitment Flyer</strong> · Print it, or save as PDF (choose "Save as PDF" in the print dialog) and share digitally.</p>
+  <button class="print-btn" onclick="window.print()">🖨 Print / Save as PDF</button>
+</div>
+
+<div class="flyer">
+
+  <!-- HEADER -->
+  <div class="fl-head">
+    <div class="fl-brand">LUMIÈRE<span>.</span></div>
+    <div class="fl-sub">Skin Cap · Beautiful Skin, Anywhere You Go</div>
+    <h1>Get paid to share the <em>skincare you love.</em></h1>
+    <p>Join the Lumière Influencer, Affiliate &amp; Brand Ambassador Program — earn real commission on every sale you drive from Instagram, TikTok, or Facebook.</p>
+    <div class="fl-earn-badge">Earn up to <b>20%</b> per sale</div>
+  </div>
+
+  <!-- PRODUCTS -->
+  <div class="fl-products">
+    <div class="fl-sec-title">The Products You'll Promote</div>
+    <div class="fl-prod-grid">
+      <div class="fl-prod">
+        <div class="fl-prod-img" data-slot="pack-3day" data-slot-alt="3-Day Trial Pack" data-slot-fit="cover">
+          <svg viewBox="0 0 100 100"><rect x="20" y="15" width="60" height="70" rx="6" fill="#e8e6df" stroke="#bcbcb6"/><ellipse cx="38" cy="35" rx="10" ry="6" fill="#f4d65a"/><ellipse cx="62" cy="35" rx="10" ry="6" fill="#fff"/><ellipse cx="38" cy="52" rx="10" ry="6" fill="#fff"/><ellipse cx="62" cy="52" rx="10" ry="6" fill="#f4d65a"/><ellipse cx="38" cy="69" rx="10" ry="6" fill="#f4d65a"/><ellipse cx="62" cy="69" rx="10" ry="6" fill="#fff"/></svg>
+        </div>
+        <div class="fl-prod-info">
+          <div class="fl-prod-name">3-Day Trial Pack</div>
+          <div class="fl-prod-price">$24</div>
+          <div class="fl-prod-earn">You earn up to $4.80</div>
+        </div>
+      </div>
+      <div class="fl-prod">
+        <div class="fl-prod-img" data-slot="pack-7day" data-slot-alt="7-Day Pack" data-slot-fit="cover">
+          <svg viewBox="0 0 100 100"><rect x="25" y="10" width="50" height="80" rx="6" fill="#e8e6df" stroke="#bcbcb6"/><ellipse cx="50" cy="25" rx="14" ry="7" fill="#f4d65a"/><ellipse cx="50" cy="41" rx="14" ry="7" fill="#fff"/><ellipse cx="50" cy="57" rx="14" ry="7" fill="#f4d65a"/><ellipse cx="50" cy="73" rx="14" ry="7" fill="#fff"/></svg>
+        </div>
+        <div class="fl-prod-info">
+          <div class="fl-prod-name">7-Day Pack</div>
+          <div class="fl-prod-price">$49</div>
+          <div class="fl-prod-earn">You earn up to $9.80</div>
+        </div>
+      </div>
+      <div class="fl-prod">
+        <div class="fl-prod-img" data-slot="pack-deluxe" data-slot-alt="Deluxe Set" data-slot-fit="cover">
+          <svg viewBox="0 0 100 100"><rect x="15" y="15" width="42" height="70" rx="5" fill="#e8e6df" stroke="#bcbcb6"/><ellipse cx="36" cy="32" rx="11" ry="6" fill="#f4d65a"/><ellipse cx="36" cy="50" rx="11" ry="6" fill="#fff"/><ellipse cx="36" cy="68" rx="11" ry="6" fill="#f4d65a"/><circle cx="74" cy="38" r="14" fill="#e8a8b8"/><circle cx="74" cy="66" r="14" fill="#e8a8b8" opacity="0.8"/></svg>
+        </div>
+        <div class="fl-prod-info">
+          <div class="fl-prod-name">Deluxe Set</div>
+          <div class="fl-prod-price">$69</div>
+          <div class="fl-prod-earn">You earn up to $13.80</div>
+        </div>
+      </div>
+      <div class="fl-prod">
+        <div class="fl-prod-img" data-slot="sponge-standalone" data-slot-alt="Exfoliating Sponges" data-slot-fit="cover">
+          <svg viewBox="0 0 100 100"><circle cx="42" cy="42" r="24" fill="#e8a8b8"/><circle cx="64" cy="62" r="20" fill="#dc98a8"/><circle cx="36" cy="36" r="4" fill="#fff" opacity="0.4"/></svg>
+        </div>
+        <div class="fl-prod-info">
+          <div class="fl-prod-name">Exfoliating &amp; Facial Sponges</div>
+          <div class="fl-prod-price">$30</div>
+          <div class="fl-prod-earn">You earn up to $6.00</div>
+        </div>
+      </div>
+    </div>
+    <p style="text-align:center;font-size:0.72rem;color:var(--ink-soft);margin-top:1rem;font-style:italic">Lumière Skin Cap — the complete 7-step skincare ritual in single-use capsules. TSA-friendly · Hygienic · For all skin types.</p>
+  </div>
+
+  <!-- MID: TIERS + DETAILS -->
+  <div class="fl-mid">
+    <div class="fl-tiers">
+      <h2>Commission Tiers</h2>
+      <div class="fl-tier-row">
+        <div class="fl-tier-medal m-bronze">B</div>
+        <div><div class="fl-tier-name">Bronze</div><div class="fl-tier-req">Everyone starts here · no minimums</div></div>
+        <div class="fl-tier-pct">15%</div>
+      </div>
+      <div class="fl-tier-row">
+        <div class="fl-tier-medal m-silver">S</div>
+        <div><div class="fl-tier-name">Silver</div><div class="fl-tier-req">Automatic at $2,500 in sales</div></div>
+        <div class="fl-tier-pct">18%</div>
+      </div>
+      <div class="fl-tier-row">
+        <div class="fl-tier-medal m-gold">G</div>
+        <div><div class="fl-tier-name">Gold</div><div class="fl-tier-req">Automatic at $10,000 in sales</div></div>
+        <div class="fl-tier-pct">20%</div>
+      </div>
+      <div class="fl-example">
+        <div class="ex-title">Real Example</div>
+        <p>Sell just <b>20 × 7-Day Packs</b> a month at Silver tier → <b>$176/month</b> · <b>$2,117/year</b>. Top Gold ambassadors earn <b>$1,500+ monthly</b>.</p>
+      </div>
+    </div>
+
+    <div class="fl-details">
+      <h2>How It Works</h2>
+      <div class="fl-perk"><div class="dot">1</div><p><b>Apply free</b> — takes 2 minutes. We review within 48 hours.</p></div>
+      <div class="fl-perk"><div class="dot">2</div><p><b>Get your codes</b> — unique trackable codes for Instagram, TikTok &amp; Facebook. Your followers get <b>10% off</b>, you get credit.</p></div>
+      <div class="fl-perk"><div class="dot">3</div><p><b>Post &amp; share</b> — free marketing assets: photos, videos, ready-to-post captions.</p></div>
+      <div class="fl-perk"><div class="dot">4</div><p><b>Track everything live</b> — your personal dashboard shows clicks, orders &amp; earnings by channel.</p></div>
+      <div class="fl-perk"><div class="dot">5</div><p><b>Get paid monthly</b> — on the 1st, via <b>PayPal, Zelle, or ACH</b> direct deposit. $25 minimum.</p></div>
+      <div class="fl-perk"><div class="dot">★</div><p><b>Perks</b> — free product gifting, early access to launches, and a direct line to founder Claire at Gold tier.</p></div>
+    </div>
+  </div>
+
+  <!-- FOOTER CTA -->
+  <div class="fl-foot">
+    <div>
+      <h2>Ready to start earning?</h2>
+      <p>Apply in 2 minutes at:</p>
+      <span class="apply-url">lumiereskincarecaps.com/ambassador</span>
+    </div>
+    <div class="fl-qr">
+      <!-- Decorative QR placeholder — replace with a real QR to your ambassador URL -->
+      <svg viewBox="0 0 100 100" fill="#1a1a1a">
+        <rect x="5" y="5" width="26" height="26"/><rect x="10" y="10" width="16" height="16" fill="#faf7f2"/><rect x="14" y="14" width="8" height="8"/>
+        <rect x="69" y="5" width="26" height="26"/><rect x="74" y="10" width="16" height="16" fill="#faf7f2"/><rect x="78" y="14" width="8" height="8"/>
+        <rect x="5" y="69" width="26" height="26"/><rect x="10" y="74" width="16" height="16" fill="#faf7f2"/><rect x="14" y="78" width="8" height="8"/>
+        <rect x="40" y="8" width="6" height="6"/><rect x="52" y="8" width="6" height="6"/><rect x="46" y="16" width="6" height="6"/><rect x="58" y="20" width="6" height="6"/>
+        <rect x="40" y="28" width="6" height="6"/><rect x="8" y="40" width="6" height="6"/><rect x="20" y="44" width="6" height="6"/><rect x="30" y="40" width="6" height="6"/>
+        <rect x="42" y="40" width="12" height="12"/><rect x="60" y="42" width="6" height="6"/><rect x="72" y="40" width="6" height="6"/><rect x="84" y="44" width="6" height="6"/>
+        <rect x="8" y="54" width="6" height="6"/><rect x="26" y="56" width="6" height="6"/><rect x="40" y="58" width="6" height="6"/><rect x="52" y="56" width="6" height="6"/>
+        <rect x="66" y="54" width="10" height="10"/><rect x="84" y="58" width="6" height="6"/>
+        <rect x="42" y="70" width="6" height="6"/><rect x="54" y="72" width="6" height="6"/><rect x="66" y="72" width="6" height="6"/><rect x="78" y="70" width="10" height="10"/>
+        <rect x="40" y="84" width="6" height="6"/><rect x="52" y="86" width="6" height="6"/><rect x="68" y="86" width="6" height="6"/>
+      </svg>
+    </div>
+  </div>
+
+  <div class="fl-contact">
+    Questions? <b>partners@lumiereskincarecaps.com</b> · Lumière Capsules · Gaithersburg, MD · Follow us <b>@lumiereskincarecaps</b>
+  </div>
+
+</div>
+
+<script src="config.js"></script>
+<script src="images.js"></script>
+</body>
+</html>
