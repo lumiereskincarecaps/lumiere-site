@@ -130,6 +130,29 @@
   .compare-side p{font-size:0.95rem;line-height:1.7}
   .compare-vs{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:1.5rem;color:var(--ink-soft);padding:0 1rem;text-align:center}
 
+  /* COMMON DISASTERS */
+  .disasters-section{padding:6rem 0;background:var(--paper)}
+  .disaster-grid{display:grid;grid-template-columns:repeat(4,1fr) auto 1.2fr;gap:1.2rem;align-items:stretch}
+  @media(max-width:1000px){.disaster-grid{grid-template-columns:repeat(2,1fr)}.disaster-arrow{display:none}.disaster-solution{grid-column:1/-1}}
+  .disaster-card{background:linear-gradient(160deg,#fdf3f0,#f6e3dc);border:1px solid rgba(185,78,62,0.25);border-radius:14px;padding:1.6rem 1.3rem;text-align:center}
+  .disaster-card .ic{font-size:1.6rem;margin-bottom:0.6rem}
+  .disaster-card b{display:block;font-size:0.78rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--red);font-weight:700;margin-bottom:0.3rem}
+  .disaster-card p{font-size:0.82rem;color:var(--ink-soft)}
+  .disaster-arrow{display:flex;align-items:center;justify-content:center;font-size:2rem;color:var(--gold-deep)}
+  .disaster-solution{background:linear-gradient(160deg,#1f1f1f,#0a0a0a);border:1px solid rgba(212,184,150,0.35);border-radius:14px;padding:1.8rem 1.5rem;display:flex;flex-direction:column;justify-content:center;text-align:center}
+  .disaster-solution b{display:block;font-size:0.72rem;letter-spacing:0.2em;text-transform:uppercase;color:var(--champagne);font-weight:700;margin-bottom:0.5rem}
+  .disaster-solution h3{color:var(--paper);font-size:1.5rem;margin-bottom:0.4rem}
+  .disaster-solution p{font-size:0.85rem;color:rgba(248,245,238,0.8)}
+
+  /* CONNECT BAR */
+  .connect-section{padding:4.5rem 0;background:var(--cream);border-top:1px solid var(--line)}
+  .connect-grid{display:flex;justify-content:center;gap:2.5rem;flex-wrap:wrap;margin-top:2rem}
+  .connect-item{text-align:center;min-width:130px}
+  .connect-item .ci{width:52px;height:52px;border-radius:50%;background:var(--paper);border:1.5px solid var(--gold);color:var(--gold-deep);display:flex;align-items:center;justify-content:center;margin:0 auto 0.7rem;font-size:1.2rem;font-weight:600;transition:all .3s}
+  .connect-item:hover .ci{background:var(--gold-deep);color:var(--paper);transform:translateY(-3px)}
+  .connect-item b{display:block;font-size:0.68rem;letter-spacing:0.18em;text-transform:uppercase;color:var(--ink);font-weight:700;margin-bottom:0.2rem}
+  .connect-item span{font-size:0.78rem;color:var(--ink-soft)}
+
   /* 12 BENEFITS */
   .benefits-section{padding:7rem 0;background:var(--cream)}
   .benefits-frame{background:var(--paper);border:1px solid rgba(184,147,90,0.4);border-radius:22px;padding:3.5rem 3rem;box-shadow:0 24px 60px rgba(139,111,63,0.1);position:relative}
@@ -434,6 +457,28 @@
   </div>
 </section>
 
+<!-- COMMON DISASTERS -->
+<section class="disasters-section">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow">Without Lumière</span>
+      <h2>Common <em style="font-style:italic;color:var(--red)">disasters.</em></h2>
+    </div>
+    <div class="disaster-grid">
+      <div class="disaster-card"><div class="ic">💧</div><b>Toner Leaks</b><p>Soaks everything.</p></div>
+      <div class="disaster-card"><div class="ic">🫙</div><b>Moisturizer Spills</b><p>Messy, sticky, ruined.</p></div>
+      <div class="disaster-card"><div class="ic">🧴</div><b>Serums Break</b><p>Broken bottles, wasted product.</p></div>
+      <div class="disaster-card"><div class="ic">💥</div><b>Cream Explodes</b><p>Sticky mess everywhere.</p></div>
+      <div class="disaster-arrow">→</div>
+      <div class="disaster-solution">
+        <b>With Lumière Skin Cap</b>
+        <h3>Nothing to spill.</h3>
+        <p>Sealed, precision-dosed capsules. No bottles, no leaks, no drama — just one clean sheet.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
 <!-- 12 POWERFUL BENEFITS -->
 <section class="benefits-section" id="benefits">
   <div class="container">
@@ -618,6 +663,22 @@
   <div style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap">
     <a href="shop.html" class="btn btn-primary">Shop the 7-Day Travel Pack — $49</a>
     <a href="shop.html#packs" class="btn" style="background:transparent;color:var(--paper);border:1.5px solid var(--paper)">Compare all packs</a>
+  </div>
+</section>
+
+<!-- CONNECT WITH US -->
+<section class="connect-section">
+  <div class="container" style="text-align:center">
+    <span class="eyebrow">Connect With Us</span>
+    <h2>Follow the <em style="font-style:italic;color:var(--gold-deep)">glow.</em></h2>
+    <div class="connect-grid">
+      <a class="connect-item" href="https://www.lumiereskincarecaps.com"><div class="ci">🌐</div><b>Website</b><span>lumiereskincarecaps.com</span></a>
+      <a class="connect-item" href="https://instagram.com/lumiereskincarecaps" target="_blank"><div class="ci">◎</div><b>Instagram</b><span>@lumiereskincarecaps</span></a>
+      <a class="connect-item" href="https://tiktok.com/@lumiereskincarecaps" target="_blank"><div class="ci">♪</div><b>TikTok</b><span>@lumiereskincarecaps</span></a>
+      <a class="connect-item" href="https://facebook.com/lumiereskincarecaps" target="_blank"><div class="ci">f</div><b>Facebook</b><span>lumiereskincarecaps</span></a>
+      <a class="connect-item" href="https://amazon.com" target="_blank"><div class="ci">a</div><b>Amazon</b><span>lumiereskincarecaps</span></a>
+      <div class="connect-item"><div class="ci">📍</div><b>Location</b><span>Maryland, USA</span></div>
+    </div>
   </div>
 </section>
 
