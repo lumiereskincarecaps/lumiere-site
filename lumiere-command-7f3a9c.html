@@ -1137,9 +1137,13 @@
         <div class="card" id="publish-images-card" style="margin-bottom:1.5rem;border:2px solid var(--amber);background:#fff8e6">
           <div class="card-head">
             <h3 id="publish-images-head" style="color:#7a5518">⚠ Publish Images So Everyone Can See Them</h3>
-            <button class="btn btn-sm" id="publish-images">↑ Publish All Images to Site</button>
+            <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
+              <button class="btn btn-sm" id="download-images">⬇ Download Images Folder</button>
+              <button class="btn btn-sm" id="publish-images">↑ Publish via GitHub</button>
+            </div>
           </div>
-          <p style="font-size:0.88rem;color:#7a5518;margin-bottom:0.6rem">Uploaded images are stored <strong>in this browser only</strong> — they show for you, but visitors on other devices and phones see empty placeholders. Publishing commits them as real files to your site so they appear for everyone.</p>
+          <p style="font-size:0.88rem;color:#7a5518;margin-bottom:0.6rem">Uploaded images live <strong>in this browser only</strong> — they show for you, but visitors on phones and other devices see empty placeholders. To make them public they must become real files on the site.</p>
+          <p style="font-size:0.82rem;color:#7a5518;margin-bottom:0.6rem"><strong>⬇ Download Images Folder</strong> saves every image plus a <code>manifest.json</code> to your computer as a zip — no setup needed. Unzip it and drop the <code>img</code> folder into your <code>lumiere-site</code> folder, then ask Claude to publish. <strong>↑ Publish via GitHub</strong> does it in one click but needs your GitHub connection saved in the Journal tab first.</p>
           <div id="publish-images-status" style="font-size:0.85rem"></div>
         </div>
 
@@ -4649,6 +4653,66 @@ document.getElementById('publish-images')?.addEventListener('click', async () =>
     toast('⚠ ' + err.message);
   } finally {
     btn.disabled = false; btn.textContent = '↑ Publish All Images to Site';
+  }
+});
+
+/* ---- ROUTE B: download every browser-stored image as a zip (no GitHub needed) ---- */
+function loadJsZip(){
+  return new Promise((resolve, reject) => {
+    if(window.JSZip) return resolve(window.JSZip);
+    const sc = document.createElement('script');
+    sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
+    sc.onload  = () => resolve(window.JSZip);
+    sc.onerror = () => reject(new Error('Could not load the zip library — check your internet connection.'));
+    document.head.appendChild(sc);
+  });
+}
+function extFromDataUrl(d){
+  const m = /^data:image\/([a-z0-9+.-]+)/i.exec(d || '');
+  let e = (m ? m[1] : 'png').toLowerCase();
+  if(e === 'jpeg') e = 'jpg';
+  if(e === 'svg+xml') e = 'svg';
+  return e;
+}
+document.getElementById('download-images')?.addEventListener('click', async () => {
+  const btn    = document.getElementById('download-images');
+  const status = document.getElementById('publish-images-status');
+  status.dataset.busy = '1';
+  btn.disabled = true; btn.textContent = 'Preparing…';
+  try {
+    const JSZipLib = await loadJsZip();
+    const local = (await Lumiere.Images.list()) || [];
+    if(!local.length){
+      status.innerHTML = '<span style="color:#b3261e">No images found in this browser. If you uploaded them on another device or browser, open the admin there and download from that browser instead.</span>';
+      return;
+    }
+    const zip = new JSZipLib();
+    const folder = zip.folder('img');
+    const manifest = Object.assign({}, await getPublishedManifest());
+    let n = 0;
+    for(const img of local){
+      const data = img.dataUrl || img.data || img.src;
+      if(!data || data.indexOf('base64,') === -1) continue;
+      const ext  = extFromDataUrl(data);
+      const name = img.id + '.' + ext;
+      folder.file(name, data.split('base64,')[1], { base64: true });
+      manifest[img.id] = 'img/' + name;
+      n++;
+      btn.textContent = 'Packing ' + n + '/' + local.length + '…';
+    }
+    folder.file('manifest.json', JSON.stringify(manifest, null, 2));
+    const blob = await zip.generateAsync({ type: 'blob' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href = url; a.download = 'lumiere-images.zip';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+    status.innerHTML = '<span style="color:#1f7a3d;font-weight:600">✓ Downloaded ' + n + ' image' + (n===1?'':'s') + ' as lumiere-images.zip.</span><br>Unzip it, drop the <strong>img</strong> folder into your <strong>lumiere-site</strong> folder (replacing the existing one), then tell Claude &ldquo;publish&rdquo;.';
+  } catch(e){
+    status.innerHTML = '<span style="color:#b3261e">Download failed: ' + (e.message || e) + '</span>';
+  } finally {
+    btn.disabled = false; btn.textContent = '⬇ Download Images Folder';
+    delete status.dataset.busy;
   }
 });
 
