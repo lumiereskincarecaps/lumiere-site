@@ -569,13 +569,67 @@
   const err  = document.getElementById('gate-error');
   const showErr = m => { err.textContent = m; err.style.display = 'block'; };
 
+  /* SHA-256. Uses Web Crypto when available (HTTPS); falls back to a small
+     pure-JS implementation so the gate still works over file:// or http://. */
   async function sha256(txt){
-    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(txt));
-    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+    if(window.crypto && crypto.subtle && window.isSecureContext){
+      try {
+        const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(txt));
+        return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+      } catch(e){ /* fall through */ }
+    }
+    return sha256js(txt);
+  }
+  function sha256js(ascii){
+    function rr(v,a){ return (v>>>a)|(v<<(32-a)); }
+    const K=[], H=[], P=[];
+    let i=0,n=2;
+    while(i<64){
+      let isP=true;
+      for(let f=2;f*f<=n;f++) if(n%f===0){ isP=false; break; }
+      if(isP){
+        if(i<8) H[i]=(Math.pow(n,0.5)%1*4294967296)|0;
+        K[i]=(Math.pow(n,1/3)%1*4294967296)|0;
+        i++;
+      }
+      n++;
+    }
+    const utf8 = unescape(encodeURIComponent(ascii));
+    const msg = [];
+    for(let j=0;j<utf8.length;j++) msg.push(utf8.charCodeAt(j));
+    msg.push(0x80);
+    while(msg.length%64!==56) msg.push(0);
+    const bitLen = utf8.length*8;
+    msg.push(0,0,0,0,(bitLen>>>24)&255,(bitLen>>>16)&255,(bitLen>>>8)&255,bitLen&255);
+    const w=[];
+    for(let b=0;b<msg.length;b+=64){
+      for(let j=0;j<16;j++) w[j]=(msg[b+j*4]<<24)|(msg[b+j*4+1]<<16)|(msg[b+j*4+2]<<8)|msg[b+j*4+3];
+      for(let j=16;j<64;j++){
+        const s0=rr(w[j-15],7)^rr(w[j-15],18)^(w[j-15]>>>3);
+        const s1=rr(w[j-2],17)^rr(w[j-2],19)^(w[j-2]>>>10);
+        w[j]=(w[j-16]+s0+w[j-7]+s1)|0;
+      }
+      let [a,bb,c,d,e,f,g,h]=H;
+      for(let j=0;j<64;j++){
+        const S1=rr(e,6)^rr(e,11)^rr(e,25);
+        const ch=(e&f)^(~e&g);
+        const t1=(h+S1+ch+K[j]+w[j])|0;
+        const S0=rr(a,2)^rr(a,13)^rr(a,22);
+        const maj=(a&bb)^(a&c)^(bb&c);
+        const t2=(S0+maj)|0;
+        h=g; g=f; f=e; e=(d+t1)|0; d=c; c=bb; bb=a; a=(t1+t2)|0;
+      }
+      H[0]=(H[0]+a)|0; H[1]=(H[1]+bb)|0; H[2]=(H[2]+c)|0; H[3]=(H[3]+d)|0;
+      H[4]=(H[4]+e)|0; H[5]=(H[5]+f)|0; H[6]=(H[6]+g)|0; H[7]=(H[7]+h)|0;
+    }
+    return H.map(x => ((x>>>0).toString(16).padStart(8,'0'))).join('');
   }
   function unlock(){
-    gate.remove();
+    if(gate && gate.parentNode) gate.remove();
     document.body.style.overflow = '';
+    const app = document.getElementById('admin-app');
+    if(app) app.classList.remove('hidden');
+    if(typeof window.renderAdminIdentity === 'function') window.renderAdminIdentity();
   }
   function lockState(){
     try { return JSON.parse(localStorage.getItem(LOCK_KEY)) || { tries:0, until:0 }; }
@@ -625,7 +679,9 @@
     }
     const email = document.getElementById('gate-email').value.trim().toLowerCase();
     const pass  = document.getElementById('gate-pass').value;
-    const hash  = await sha256(SALT + pass);
+    let hash;
+    try { hash = await sha256(SALT + pass); }
+    catch(err){ showErr('Could not verify — ' + err.message); return; }
     if(email === ADMIN_EMAIL && hash === ADMIN_HASH){
       setLock({ tries:0, until:0 });
       const remember = document.getElementById('gate-remember').checked;
@@ -1346,7 +1402,7 @@ const USERS_KEY = 'lumiere_users';
 
 function loadUsers(){ try { return JSON.parse(localStorage.getItem(USERS_KEY)) || {}; } catch { return {}; } }
 
-(function showAdminIdentity(){
+window.renderAdminIdentity = function(){
   const app = document.getElementById('admin-app');
   if(app) app.classList.remove('hidden');
   let email = ADMIN_EMAILS[0];
@@ -1366,7 +1422,9 @@ function loadUsers(){ try { return JSON.parse(localStorage.getItem(USERS_KEY)) |
         <button class="signout-btn" onclick="adminSignOut()">Sign Out</button>
       </div>`;
   }
-})();
+};
+/* If the gate already unlocked before this script ran, render now */
+if(!document.getElementById('admin-gate')) window.renderAdminIdentity();
 
 /* ======================================================
    DATA
