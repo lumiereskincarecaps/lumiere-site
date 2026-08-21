@@ -128,7 +128,7 @@ const fmt = n => '$' + n.toFixed(2);
 const ADMIN_EMAILS = ['seoprrocket@gmail.com'];
 function isOwnerViewer(){
   try {
-    if(localStorage.getItem('lumiere_owner_device') === '1') return true;
+    if(new URLSearchParams(location.search).get('demo') === '1') return true;
     const raw = sessionStorage.getItem('lumiere_session') || localStorage.getItem('lumiere_session');
     if(raw){ const s = JSON.parse(raw); if(s && ADMIN_EMAILS.includes(s.email)) return true; }
   } catch(e){}

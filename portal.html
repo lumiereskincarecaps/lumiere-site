@@ -1011,15 +1011,16 @@ $$('[data-switch]').forEach(a => a.addEventListener('click', e => {
   clearAuthError();
 }));
 
-/* Demo accounts panel is owner-only.
-   Visible when: ?demo=1 in the URL, or the owner previously signed in on this browser. */
+/* Demo accounts panel: shown ONLY when the URL contains ?demo=1 */
 (function(){
-  const OWNER_FLAG = 'lumiere_owner_device';
   const params = new URLSearchParams(location.search);
-  if(params.get('demo') === '1'){ try { localStorage.setItem(OWNER_FLAG,'1'); } catch(e){} }
-  let isOwnerDevice = false;
-  try { isOwnerDevice = localStorage.getItem(OWNER_FLAG) === '1'; } catch(e){}
-  if(isOwnerDevice) document.getElementById('demo-accounts')?.classList.remove('hidden');
+  const panel = document.getElementById('demo-accounts');
+  if(!panel) return;
+  if(params.get('demo') === '1'){
+    panel.classList.remove('hidden');
+  } else {
+    panel.remove();   // not just hidden — removed from the page entirely
+  }
 })();
 
 $$('[data-demo]').forEach(b => b.addEventListener('click', () => {
