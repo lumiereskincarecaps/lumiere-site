@@ -361,38 +361,7 @@
   function seedAmbassadors(){
     let all = LS.get(AMB_KEY, null);
     if(all !== null) return all;
-    all = {
-      'maya@travelmaya.com': {
-        email:'maya@travelmaya.com', name:'Maya Chen', password: btoa(unescape(encodeURIComponent('lum:lumiere'))),
-        status:'active', tier:'gold', commissionPct:20, joinedAt:'2025-06-12',
-        channels:{
-          instagram:{ handle:'@travelmaya', code:'MAYA-IG', clicks:4211, orders:214, sales:18922.00 },
-          tiktok:{ handle:'@travelmaya', code:'MAYA-TT', clicks:9860, orders:312, sales:26410.00 },
-          facebook:{ handle:'Maya Chen Travels', code:'MAYA-FB', clicks:820, orders:31, sales:2688.00 }
-        },
-        payment:{ method:'paypal', paypalEmail:'maya@travelmaya.com', zellePhone:'', achRouting:'', achAccount:'', achName:'' },
-        payouts:[
-          { id:'PAY-0612', month:'April 2026', amount:1848.40, status:'paid', date:'2026-05-01', method:'PayPal' },
-          { id:'PAY-0537', month:'March 2026', amount:1621.10, status:'paid', date:'2026-04-01', method:'PayPal' },
-          { id:'PAY-0461', month:'February 2026', amount:1390.75, status:'paid', date:'2026-03-01', method:'PayPal' }
-        ],
-        pendingEarnings: 942.66
-      },
-      'jess@jessontheroad.co': {
-        email:'jess@jessontheroad.co', name:'Jess Torres', password: btoa(unescape(encodeURIComponent('lum:lumiere'))),
-        status:'active', tier:'silver', commissionPct:18, joinedAt:'2025-11-02',
-        channels:{
-          instagram:{ handle:'@jessontheroad', code:'JESS-IG', clicks:1830, orders:84, sales:7214.00 },
-          tiktok:{ handle:'@jessontheroad', code:'JESS-TT', clicks:3111, orders:96, sales:8102.00 },
-          facebook:{ handle:'', code:'JESS-FB', clicks:0, orders:0, sales:0 }
-        },
-        payment:{ method:'zelle', paypalEmail:'', zellePhone:'+1 (415) 555-0182', achRouting:'', achAccount:'', achName:'' },
-        payouts:[
-          { id:'PAY-0613', month:'April 2026', amount:588.20, status:'paid', date:'2026-05-01', method:'Zelle' }
-        ],
-        pendingEarnings: 412.19
-      }
-    };
+    all = {};  /* Live store: ambassadors register through ambassador.html. */
     LS.set(AMB_KEY, all);
     return all;
   }

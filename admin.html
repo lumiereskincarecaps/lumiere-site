@@ -976,6 +976,20 @@
           </div>
         </div>
 
+        <!-- Backup / Restore -->
+        <div class="card" style="margin-bottom:1.5rem">
+          <div class="card-head">
+            <h3>Backup Your Settings</h3>
+            <span class="meta" id="storage-state">—</span>
+          </div>
+          <p style="font-size:0.85rem;margin-bottom:1rem">Everything you enter here is saved in this browser automatically. Download a backup file to keep your settings safe or move them to another computer.</p>
+          <div style="display:flex;gap:0.7rem;flex-wrap:wrap">
+            <button class="btn btn-sm" id="export-settings">↓ Download Backup</button>
+            <button class="btn btn-sm btn-ghost" id="import-settings">↑ Restore From Backup</button>
+            <input type="file" id="import-file" accept="application/json" style="display:none">
+          </div>
+        </div>
+
         <!-- Deploy History -->
         <div class="card" style="margin-bottom:1.5rem">
           <div class="card-head">
@@ -1195,71 +1209,14 @@ const AGENTS = [
 ];
 
 const INQUIRIES = [
-  {
-    id:'INQ-2412', from:'James Holloway', email:'james.h@northstar.co',
-    subject:'Order LUM-2825 — when will it ship?',
-    body:'Hi! I placed an order yesterday and was hoping to use it before my flight Friday. Can you tell me when it\'s expected to ship?',
-    topic:'Order Status', urgency:'high', status:'ai-drafted',
-    time:'12 min ago',
-    aiDraft:'Hi James,\n\nThanks for reaching out — your Deluxe Set (LUM-2825) is currently in our packing queue and will ship by end of day tomorrow at the latest. With UPS Ground 2-day to San Francisco, you should have it Thursday morning, well in time for your Friday flight.\n\nI\'ve also flagged your order for priority packing so we can get it out as fast as possible. You\'ll receive a tracking link the moment it leaves us.\n\nSafe travels — and welcome to Lumière!\n\nWith care,\nLumière Customer Care'
-  },
-  {
-    id:'INQ-2411', from:'Anya Rodriguez', email:'anya@studiozetta.com',
-    subject:'Allergic to chamomile — chamomile-free option?',
-    body:'I have a chamomile allergy. Are any of your packs chamomile-free, or is it in every formula?',
-    topic:'Ingredients', urgency:'normal', status:'ai-drafted',
-    time:'47 min ago',
-    aiDraft:'Hi Anya,\n\nThank you for asking — chamomile is a key calming ingredient in our standard formulas, so the full Lumière ritual does include it. We don\'t currently offer a chamomile-free version.\n\nIf you\'d like to try a partial routine that skips the chamomile-containing capsules (the toner and essence), our team can put together a custom 7-day pack with substitutes. Just reply to this email and I\'ll loop in our formulator.\n\nIn the meantime, here\'s a full ingredient breakdown for every step in our line: [link]\n\nWith care,\nLumière Customer Care'
-  },
-  {
-    id:'INQ-2410', from:'Bali Boutique Hotel', email:'partnerships@balibreezehotel.com',
-    subject:'Wholesale inquiry — 200 units per quarter',
-    body:'We\'re a luxury wellness resort in Bali looking to stock Lumière in our 80 villas as part of our welcome amenity. Can we discuss wholesale pricing for ~200 units quarterly?',
-    topic:'Wholesale', urgency:'high', status:'escalated',
-    time:'1 hr ago',
-    aiDraft:'Hi team at Bali Breeze,\n\nThank you for thinking of Lumière for your guest experience — what a beautiful fit. I\'ve forwarded your inquiry to our Head of Partnerships, who will reach out directly within 24 hours with our wholesale tier and white-label options.\n\nA few quick questions she\'ll likely ask:\n• Preferred capsule pack sizes (3-day or 7-day work especially well for hotel amenity)\n• Co-branded packaging — yes/no?\n• Quarterly cadence start date\n\nLooking forward to the conversation.\n\nWarmly,\nLumière Partnerships'
-  },
-  {
-    id:'INQ-2409', from:'Vogue Magazine', email:'beauty@vogue.com',
-    subject:'Press inquiry — Travel Beauty roundup',
-    body:'Hi! I\'m putting together a feature on innovative travel beauty for our June issue and would love to include Lumière. Could you send press samples and high-res imagery?',
-    topic:'Press', urgency:'urgent', status:'escalated',
-    time:'3 hrs ago',
-    aiDraft:'Hi Beauty Editor at Vogue,\n\nWhat an honor — thank you for considering Lumière for your June Travel Beauty feature. I\'m looping in our founder Claire and our PR coordinator now to get press samples and our high-res image library to you within 24 hours.\n\nWe\'d be glad to also offer:\n• A short founder quote on our travel-first philosophy\n• Behind-the-scenes imagery from our Maryland studio\n• An exclusive preview of our upcoming Deluxe Set\n\nWhat\'s your editorial deadline? We\'ll move at your pace.\n\nWarmly,\nLumière Press'
-  },
-  {
-    id:'INQ-2408', from:'Robin Sato', email:'r.sato@theheliogroup.jp',
-    subject:'My capsule sheet had 11 capsules instead of 12',
-    body:'I just opened my LUM-2822 sheet and one of the cells is empty — the toner. Otherwise everything looks great. Is this a known issue?',
-    topic:'Quality Issue', urgency:'high', status:'ai-drafted',
-    time:'5 hrs ago',
-    aiDraft:'Hi Robin,\n\nI\'m so sorry — that\'s definitely not the experience we want you to have. A missing capsule is a packaging defect on our side, and we want to make it right immediately.\n\nI\'ve initiated a free replacement sheet that will ship today via DHL Express to Tokyo (estimated arrival: 3-4 business days). You don\'t need to return the original — please use the other 11 capsules as planned.\n\nI\'ve also added a complimentary 3-Day Trial Pack as our way of saying thank you for your patience.\n\nWith care,\nLumière Customer Care'
-  }
+  /* Live store: customer inquiries arrive here from the contact form. */
 ];
 
+
 const REFUNDS = [
-  {
-    id:'REF-0089', orderId:'LUM-2814', customer:'Aiko Tanaka',
-    amount:49, reason:'Skin sensitivity — not the right fit',
-    aiScore:0.08, aiRecommendation:'approve',
-    aiRationale:'Within 30-day Skin-Try window (Day 9). First return for this customer. Reason aligns with stated guarantee.',
-    time:'12 min ago'
-  },
-  {
-    id:'REF-0088', orderId:'LUM-2802', customer:'Marcus Chen',
-    amount:130, reason:'Changed mind',
-    aiScore:0.61, aiRecommendation:'review',
-    aiRationale:'Third return this quarter from this customer. Pattern flagged for human review. Within window technically — Day 18 of 30-day standard return.',
-    time:'1 hr ago'
-  },
-  {
-    id:'REF-0087', orderId:'LUM-2786', customer:'Linda Vasquez',
-    amount:35, reason:'Damaged in transit — outer box crushed, capsule sheet intact',
-    aiScore:0.04, aiRecommendation:'approve',
-    aiRationale:'Photo evidence reviewed. Damage clearly carrier-related. Recommend full refund + complimentary replacement.',
-    time:'2 hrs ago'
-  }
+  /* Live store: refund requests arrive here from the returns portal. */
 ];
+
 
 /* SEO PAGE AUDIT (real pages we built) */
 const PAGES_AUDIT = [
@@ -2018,7 +1975,31 @@ function loadDeployState(){
   try { return JSON.parse(localStorage.getItem(DEPLOY_KEY)) || defaultDeployState(); }
   catch { return defaultDeployState(); }
 }
-function saveDeployState(s){ localStorage.setItem(DEPLOY_KEY, JSON.stringify(s)); }
+function saveDeployState(s){
+  try {
+    localStorage.setItem(DEPLOY_KEY, JSON.stringify(s));
+    flashSaved();
+    return true;
+  } catch(err){
+    console.error('Save failed:', err);
+    toast('⚠ Could not save — browser storage is blocked or full. Try disabling private/incognito mode.');
+    return false;
+  }
+}
+/* Small "Saved ✓" indicator so you always see writes land */
+function flashSaved(){
+  let el = document.getElementById('save-indicator');
+  if(!el){
+    el = document.createElement('div');
+    el.id = 'save-indicator';
+    el.style.cssText = 'position:fixed;bottom:1.2rem;right:1.2rem;z-index:400;background:var(--green,#5d8a4a);color:#fff;padding:0.5rem 1rem;border-radius:50px;font-size:0.72rem;letter-spacing:0.12em;text-transform:uppercase;font-weight:600;opacity:0;transition:opacity .3s;pointer-events:none;box-shadow:0 8px 20px rgba(0,0,0,0.2)';
+    document.body.appendChild(el);
+  }
+  el.textContent = '✓ Saved ' + new Date().toLocaleTimeString();
+  el.style.opacity = '1';
+  clearTimeout(window._saveFlashT);
+  window._saveFlashT = setTimeout(() => el.style.opacity = '0', 1800);
+}
 function defaultDeployState(){
   return {
     host: null,
@@ -2096,6 +2077,19 @@ function renderDeploy(){
       set('ch-name', ch.name); set('ch-method', ch.method || 'sftp'); set('ch-server', ch.server);
       set('ch-port', ch.port); set('ch-user', ch.username); set('ch-pass', ch.password);
       set('ch-path', ch.path || '/public_html'); set('ch-hook', ch.hook);
+      // Autosave custom-host fields as you type
+      const map = { 'ch-name':'name','ch-method':'method','ch-server':'server','ch-port':'port','ch-user':'username','ch-pass':'password','ch-path':'path','ch-hook':'hook' };
+      Object.entries(map).forEach(([id,key]) => {
+        const el = document.getElementById(id);
+        if(el && !el.dataset.autosaveBound){
+          el.dataset.autosaveBound = '1';
+          el.addEventListener('input', () => {
+            ch[key] = el.value.trim();
+            clearTimeout(window._chSaveT);
+            window._chSaveT = setTimeout(() => saveDeployState(s), 400);
+          });
+        }
+      });
     }
   }
 
@@ -2394,6 +2388,14 @@ function openServiceConnect(k){
     </div>
     <p style="font-size:0.78rem;color:var(--ink-soft);margin-top:1rem;font-style:italic">Saved values sync automatically into the Environment Variables table below (demo mode: stored in this browser only).</p>
   `;
+  // Autosave each service credential field as you type
+  $('#panel-body').querySelectorAll('[data-svc-field]').forEach(inp => {
+    inp.addEventListener('input', () => {
+      cfg[inp.dataset.svcField] = inp.value.trim();
+      clearTimeout(window._svcSaveT);
+      window._svcSaveT = setTimeout(() => saveDeployState(s), 400);
+    });
+  });
   $('#panel-body').querySelector('#svc-connect').addEventListener('click', () => {
     $('#panel-body').querySelectorAll('[data-svc-field]').forEach(inp => cfg[inp.dataset.svcField] = inp.value.trim());
     const missing = fields.filter(f => !f.optional && !(cfg[f.key] || '').trim());
@@ -2411,6 +2413,51 @@ function openServiceConnect(k){
   });
   openPanel();
 }
+
+/* BACKUP / RESTORE + STORAGE HEALTH CHECK */
+function storageWorks(){
+  try { localStorage.setItem('__t','1'); localStorage.removeItem('__t'); return true; } catch { return false; }
+}
+document.getElementById('export-settings')?.addEventListener('click', () => {
+  const dump = {};
+  ['lumiere_deploy_state','lumiere_vesper','lumiere_agent_prefs','lumiere_subs','lumiere_ambassadors','lumiere_inquiries','lumiere_refunds']
+    .forEach(k => { const v = localStorage.getItem(k); if(v) dump[k] = v; });
+  const blob = new Blob([JSON.stringify({ exportedAt:new Date().toISOString(), data:dump }, null, 2)], { type:'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'lumiere-admin-backup-' + new Date().toISOString().slice(0,10) + '.json';
+  a.click();
+  toast('Backup downloaded');
+});
+document.getElementById('import-settings')?.addEventListener('click', () => document.getElementById('import-file').click());
+document.getElementById('import-file')?.addEventListener('change', e => {
+  const file = e.target.files[0];
+  if(!file) return;
+  const r = new FileReader();
+  r.onload = ev => {
+    try {
+      const parsed = JSON.parse(ev.target.result);
+      const data = parsed.data || parsed;
+      Object.entries(data).forEach(([k,v]) => localStorage.setItem(k, v));
+      toast('✓ Settings restored — reloading');
+      setTimeout(() => location.reload(), 900);
+    } catch(err){ toast('That file could not be read as a backup'); }
+  };
+  r.readAsText(file);
+});
+/* Warn immediately if the browser is blocking storage */
+document.addEventListener('DOMContentLoaded', () => {
+  const el = document.getElementById('storage-state');
+  if(!el) return;
+  if(storageWorks()){
+    el.textContent = '✓ Auto-saving to this browser';
+    el.style.color = 'var(--green)';
+  } else {
+    el.textContent = '⚠ Storage blocked — changes will NOT save';
+    el.style.color = 'var(--red)';
+    toast('⚠ Your browser is blocking storage (private mode?) — admin changes cannot be saved');
+  }
+});
 
 /* PROVIDER CONNECTION FORMS (Vercel / Netlify / Cloudflare) */
 const PROVIDER_FIELDS = {
@@ -2476,6 +2523,14 @@ function renderProviderConfig(s){
     </div>
     <p style="font-size:0.78rem;color:var(--ink-soft);margin-top:0.9rem;font-style:italic">${def.docs}. Credentials are stored locally in this browser (demo mode) — in production, keep them in your CI/CD secrets.</p>
   `;
+  // Autosave each provider field as you type — nothing is lost if you forget to click Save
+  card.querySelectorAll('[data-pc-field]').forEach(inp => {
+    inp.addEventListener('input', () => {
+      cfg[inp.dataset.pcField] = inp.value.trim();
+      clearTimeout(window._pcSaveT);
+      window._pcSaveT = setTimeout(() => saveDeployState(s), 400);
+    });
+  });
   card.querySelector('#pc-save').addEventListener('click', () => {
     card.querySelectorAll('[data-pc-field]').forEach(inp => cfg[inp.dataset.pcField] = inp.value.trim());
     saveDeployState(s);
