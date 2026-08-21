@@ -28,6 +28,9 @@
   .secure svg{width:16px;height:16px;color:var(--green)}
 
   header.page-head{padding:3rem 0 2rem;background:var(--paper);border-bottom:1px solid var(--line)}
+  .back-link{display:inline-flex;align-items:center;gap:0.5rem;font-size:0.75rem;letter-spacing:0.15em;text-transform:uppercase;font-weight:600;color:var(--ink-soft);margin-bottom:1.2rem;transition:color .3s,transform .3s}
+  .back-link:hover{color:var(--gold-deep);transform:translateX(-3px)}
+  .back-link svg{width:15px;height:15px}
   header.page-head h1 em{font-style:italic;color:var(--gold-deep)}
 
   main{padding:3rem 0 5rem}
@@ -103,6 +106,10 @@
 
 <header class="page-head">
   <div class="container">
+    <a href="shop.html" class="back-link" id="back-link">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+      <span id="back-label">Back to Shop</span>
+    </a>
     <span class="eyebrow">Almost there</span>
     <h1>Checkout · <em>your ritual awaits.</em></h1>
   </div>
@@ -135,6 +142,40 @@ function isOwnerViewer(){
   return false;
 }
 const showDemoNotice = () => Lumiere.isDemo() && isOwnerViewer();
+
+/* Back link points to the page the shopper actually came from */
+(function(){
+  const PAGE_NAMES = {
+    'shop.html':'Shop', 'index.html':'Home', '':'Home',
+    'travel-hacks.html':'Travel Hacks', 'travel-gallery.html':'Packing',
+    'before-after.html':'Before & After', 'instructions.html':'How to Use',
+    'about.html':'About', 'contact.html':'Contact', 'portal.html':'Portal',
+    'returns.html':'Returns', 'shipping.html':'Shipping'
+  };
+  const link = document.getElementById('back-link');
+  const label = document.getElementById('back-label');
+  if(!link || !label) return;
+  try {
+    const ref = document.referrer;
+    if(ref){
+      const u = new URL(ref);
+      if(u.origin === location.origin){
+        const file = u.pathname.split('/').pop();
+        if(file !== 'checkout.html'){
+          const name = PAGE_NAMES[file];
+          if(name){
+            link.href = u.pathname + u.search + u.hash;
+            label.textContent = 'Back to ' + name;
+            return;
+          }
+        }
+      }
+    }
+  } catch(e){}
+  // Fallback: continue shopping
+  link.href = 'shop.html';
+  label.textContent = 'Back to Shop';
+})();
 
 // Map cart product names to their shop image slots (shown as thumbnails in the summary)
 const THUMB_SLOTS = {
