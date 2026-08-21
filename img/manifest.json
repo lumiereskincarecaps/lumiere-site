@@ -12,5 +12,12 @@
   "home-hero-product": "img/lumiere-7-days-pack-banner.jpg",
   "site-logo": "img/lumiere-skincare-logo.png",
   "favicon": "img/lumiere-skincare-icon.png",
-  "contact-card": "img/lumiere-contact-card-qr.jpg"
+  "contact-card": "img/lumiere-contact-card-qr.jpg",
+  "ba-1-before": "img/skin-before-uneven-tone-freckles.jpg",
+  "ba-1-after": "img/skin-after-even-tone-glow.jpg",
+  "ba-2-before": "img/skin-before-hyperpigmentation-texture.jpg",
+  "ba-2-after": "img/skin-after-clear-even-complexion.jpg",
+  "ba-3-before": "img/skin-before-dark-spots-dullness.jpg",
+  "ba-3-after": "img/skin-after-radiant-smooth.jpg",
+  "about-story": "img/model-holding-lumiere-capsule-sheet.jpg"
 }
