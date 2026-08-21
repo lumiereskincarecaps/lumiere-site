@@ -91,16 +91,29 @@
      CHECKOUT  ·  /api/checkout/session
      PROD: POSTs to Stripe Checkout via your server, returns URL.
      ============================================================ */
-  async function startCheckout(items, customer){
+  async function startCheckout(items, customer, ambassadorCode){
     Lumiere.Analytics.track('begin_checkout', { item_count: items.length, value: items.reduce((s,i)=>s+i.price*i.qty,0) });
-    if(isDemo()){
-      // Demo: create a local order, clear cart, send to portal.
-      const order = await Orders.create({ items, customer });
-      Cart.clear();
-      return { url: 'portal.html?checkout=success&order=' + order.id, demo: true };
+
+    // Real payments run through a Netlify Function that talks to Stripe.
+    // Prices are recalculated server-side there; nothing here is trusted.
+    if(!isDemo()){
+      const r = await fetch('/api/checkout/session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items, customer, ambassadorCode })
+      });
+      let data = {};
+      try { data = await r.json(); } catch(e){}
+      if(!r.ok || !data.url){
+        throw new Error(data.error || 'Checkout is unavailable right now. Please try again.');
+      }
+      return { url: data.url };
     }
-    const r = await http('/checkout/session', { method:'POST', body: { items, customer, success_url: CFG.stripe.successUrl, cancel_url: CFG.stripe.cancelUrl } });
-    return { url: r.url };
+
+    // Demo: create a local order, clear cart, send to portal.
+    const order = await Orders.create({ items, customer });
+    Cart.clear();
+    return { url: 'portal.html?checkout=success&order=' + order.id, demo: true };
   }
 
   /* ============================================================

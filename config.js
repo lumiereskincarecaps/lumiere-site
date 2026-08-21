@@ -9,6 +9,8 @@
 window.LUMIERE_CONFIG = {
 
   /* ---------- ENVIRONMENT ---------- */
+  // 'demo' takes no payments. Set to 'production' AFTER adding STRIPE_SECRET_KEY
+  // in Netlify (Site configuration -> Environment variables). See PAYMENTS-SETUP.md.
   env: 'demo',                         // 'demo' | 'staging' | 'production'
   siteUrl: 'https://lumiereskincarecaps.com',
   apiBase: '/api',                     // your backend base URL (Node, Rails, Django, etc.)
@@ -31,6 +33,8 @@ window.LUMIERE_CONFIG = {
 
   /* ---------- PAYMENTS · STRIPE ---------- */
   stripe: {
+    // Not required for Stripe Checkout redirect flow — the secret key lives
+    // server-side in the Netlify function. Only needed for embedded Elements.
     publishableKey: 'pk_test_REPLACE_WITH_YOUR_KEY',
     // Webhook + secret key live server-side, never in this file.
     successUrl: '/portal.html?checkout=success',

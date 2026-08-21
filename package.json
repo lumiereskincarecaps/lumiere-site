@@ -1,0 +1,9 @@
+{
+  "name": "lumiere-site",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Lumiere Skincare Capsules — static site with Stripe checkout functions",
+  "dependencies": {
+    "stripe": "^16.12.0"
+  }
+}

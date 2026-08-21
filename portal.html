@@ -2096,6 +2096,60 @@ receiptModal.addEventListener('click', e => { if(e.target === receiptModal) clos
   }
   showAuth();
 })();
+
+/* ==========================================================
+   STRIPE RETURN — confirm the payment with Stripe before
+   showing an order. Never trust the URL alone.
+   ========================================================== */
+(async function handleStripeReturn(){
+  const p = new URLSearchParams(location.search);
+  if(p.get('checkout') !== 'success') return;
+  const sessionId = p.get('session_id');
+  if(!sessionId) return;   // demo flow uses ?order= instead
+
+  const note = document.createElement('div');
+  note.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9999;padding:1rem;text-align:center;font-size:0.9rem;background:#f3ede2;color:#3a3a38;border-bottom:1px solid rgba(26,26,26,0.08)';
+  note.textContent = 'Confirming your payment…';
+  document.body.appendChild(note);
+
+  try {
+    const r = await fetch('/api/checkout/verify?session_id=' + encodeURIComponent(sessionId));
+    const d = await r.json();
+    if(!r.ok || !d.paid){
+      note.style.background = '#fee2e2';
+      note.textContent = 'We could not confirm this payment. If you were charged, email hello@lumiereskincarecaps.com and we will sort it out right away.';
+      return;
+    }
+
+    // Record the order locally so it appears in the portal, then empty the bag.
+    try {
+      const orders = JSON.parse(localStorage.getItem('lumiere_orders') || '[]');
+      if(!orders.some(o => o.id === d.orderId)){
+        orders.unshift({
+          id: d.orderId,
+          date: new Date().toISOString().slice(0,10),
+          status: 'paid',
+          items: d.items || [],
+          email: d.email, name: d.name,
+          address: d.address ? [d.address.line1, d.address.city, d.address.state, d.address.postal_code, d.address.country].filter(Boolean).join(', ') : '',
+          subtotal: d.subtotal, shipping: d.shipping, tax: 0, total: d.total,
+          tracking: null, shipDate: null, deliveredDate: null
+        });
+        localStorage.setItem('lumiere_orders', JSON.stringify(orders));
+      }
+      localStorage.setItem('lumiere_cart', '[]');
+      window.dispatchEvent(new CustomEvent('cart:change'));
+    } catch(e){}
+
+    note.style.background = '#dcfce7';
+    note.innerHTML = '<strong>Payment received.</strong> Order ' + d.orderId + ' — $' + Number(d.total).toFixed(2) + '. A receipt is on its way to ' + (d.email || 'your inbox') + '.';
+    setTimeout(() => { note.style.transition='opacity .6s'; note.style.opacity='0'; setTimeout(()=>note.remove(), 700); }, 9000);
+  } catch(e){
+    note.style.background = '#fee2e2';
+    note.textContent = 'Could not reach the payment server. If you were charged, email hello@lumiereskincarecaps.com.';
+  }
+})();
+
 </script>
 
 </body>

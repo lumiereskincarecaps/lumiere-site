@@ -372,17 +372,24 @@ async function placeOrder(){
       const cartTotal = Lumiere.Cart.subtotal() * 0.9; // after 10% discount
       await Lumiere.Ambassadors.attributeOrder(window._ambCode, cartTotal);
     }
-    const result = await Lumiere.startCheckout(Lumiere.Cart.get(), customer);
+    const result = await Lumiere.startCheckout(Lumiere.Cart.get(), customer, window._ambCode || null);
     if(result.url) window.location.href = result.url;
+    else throw new Error('No checkout URL was returned.');
   } catch(e){
-    toast('Checkout failed: ' + e.message);
+    toast(e.message || 'Checkout failed. Please try again.');
     $('#place-order').disabled = false;
+    $('#place-order').textContent = 'Place Order';
     render();
   }
 }
 
 render();
 window.addEventListener('cart:change', render);
+
+// Returning from a cancelled Stripe Checkout
+if(new URLSearchParams(location.search).get('checkout') === 'cancel'){
+  toast('Payment cancelled — your bag is still here.');
+}
 </script>
 
 </body>

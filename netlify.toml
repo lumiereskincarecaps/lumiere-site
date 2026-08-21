@@ -1,0 +1,16 @@
+[build]
+  publish = "."
+  functions = "netlify/functions"
+
+# Front-end calls /api/* — route those to the serverless functions
+[[redirects]]
+  from = "/api/checkout/session"
+  to = "/.netlify/functions/checkout"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/checkout/verify"
+  to = "/.netlify/functions/verify"
+  status = 200
+  force = true
