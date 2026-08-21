@@ -1134,9 +1134,9 @@
         </div>
 
         <!-- PUBLISH TO SITE -->
-        <div class="card" style="margin-bottom:1.5rem;border:1px solid var(--amber);background:#fff8e6">
+        <div class="card" id="publish-images-card" style="margin-bottom:1.5rem;border:2px solid var(--amber);background:#fff8e6">
           <div class="card-head">
-            <h3 style="color:#7a5518">⚠ Publish Images So Everyone Can See Them</h3>
+            <h3 id="publish-images-head" style="color:#7a5518">⚠ Publish Images So Everyone Can See Them</h3>
             <button class="btn btn-sm" id="publish-images">↑ Publish All Images to Site</button>
           </div>
           <p style="font-size:0.88rem;color:#7a5518;margin-bottom:0.6rem">Uploaded images are stored <strong>in this browser only</strong> — they show for you, but visitors on other devices and phones see empty placeholders. Publishing commits them as real files to your site so they appear for everyone.</p>
@@ -4653,21 +4653,42 @@ document.getElementById('publish-images')?.addEventListener('click', async () =>
 });
 
 /* Show how many images are published vs browser-only */
+async function getPublishedManifest(){
+  // Prefer the helper in images.js, but fall back to fetching the file directly
+  // so a cached copy of images.js can't silently break this panel.
+  try { if(Lumiere?.Images?.published) return (await Lumiere.Images.published()) || {}; } catch(e){}
+  try { const r = await fetch('img/manifest.json?t=' + Date.now()); return r.ok ? (await r.json()) : {}; }
+  catch(e){ return {}; }
+}
 async function renderPublishStatus(){
   const status = document.getElementById('publish-images-status');
+  const card   = document.getElementById('publish-images-card');
+  const head   = document.getElementById('publish-images-head');
   if(!status || status.dataset.busy) return;
-  try {
-    const local = await Lumiere.Images.list();
-    const man = await Lumiere.Images.published();
-    const published = Object.keys(man || {}).length;
-    const unpublished = local.filter(i => !man[i.id]).length;
-    status.innerHTML = unpublished
-      ? `<strong>${unpublished}</strong> image${unpublished===1?'':'s'} not published yet — invisible to visitors. ${published} already live.`
-      : published
-      ? `<span style="color:var(--green);font-weight:600">✓ All ${published} images are published and visible to everyone.</span>`
-      : 'No images uploaded yet.';
-  } catch(e){}
+  let local = [];
+  try { local = (await Lumiere.Images.list()) || []; }
+  catch(e){ status.innerHTML = '<span style="color:#b3261e">Could not read browser image storage. Hard-refresh the page (Cmd+Shift+R / Ctrl+Shift+R) and try again.</span>'; return; }
+  const man = await getPublishedManifest();
+  const published   = Object.keys(man || {}).length;
+  const unpublished = local.filter(i => !man[i.id]).length;
+
+  if(unpublished){
+    if(head) head.textContent = '⚠ ' + unpublished + ' image' + (unpublished===1?'':'s') + ' not published — visitors can\'t see ' + (unpublished===1?'it':'them');
+    if(card){ card.style.borderColor = 'var(--amber)'; card.style.background = '#fff8e6'; }
+    status.innerHTML = '<strong>' + unpublished + '</strong> image' + (unpublished===1?'':'s') +
+      ' live only in this browser. ' + published + ' already published to the site. Click the button above to push ' +
+      (unpublished===1?'it':'them') + ' live.';
+  } else if(published){
+    if(head) head.textContent = '✓ All images published';
+    if(card){ card.style.borderColor = '#bcd9c4'; card.style.background = '#f2f9f4'; }
+    status.innerHTML = '<span style="color:#1f7a3d;font-weight:600">All ' + published + ' images are published and visible to everyone, on every device.</span>';
+  } else {
+    if(head) head.textContent = 'No images published yet';
+    status.innerHTML = 'No images uploaded yet. Upload below, then publish.';
+  }
 }
+document.addEventListener('DOMContentLoaded', () => setTimeout(renderPublishStatus, 400));
+setTimeout(renderPublishStatus, 1200);
 
 /* ===== IMAGE SEO METADATA (alt text, caption, title, filename) ===== */
 const IMG_SEO_KEY = 'lumiere_image_seo';
