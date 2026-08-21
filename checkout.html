@@ -386,6 +386,32 @@ async function placeOrder(){
 render();
 window.addEventListener('cart:change', render);
 
+/* Payments preflight — if Stripe isn't wired up yet, say so at the TOP of the
+   page and disable ordering, rather than letting someone fill in the whole
+   form and fail at the last click. */
+(async function paymentsPreflight(){
+  if(Lumiere.isDemo && Lumiere.isDemo()) return;
+  let configured = false;
+  try {
+    const r = await fetch('/api/checkout/session', { method:'GET' });
+    configured = r.ok && (await r.json()).configured === true;
+  } catch(e){ configured = false; }
+  if(configured) return;
+
+  const btn = document.querySelector('#place-order');
+  if(btn){
+    btn.disabled = true;
+    btn.textContent = 'Ordering temporarily unavailable';
+    btn.style.opacity = '0.55';
+    btn.style.cursor = 'not-allowed';
+  }
+  const bar = document.createElement('div');
+  bar.style.cssText = 'background:#fef3c7;border:1px solid #f59e0b;color:#92400e;padding:0.9rem 1rem;border-radius:8px;font-size:0.86rem;margin-bottom:1.5rem;line-height:1.6';
+  bar.innerHTML = '<strong>Online ordering is briefly unavailable.</strong> We\'re finishing set-up on our payment provider. Nothing has been charged and your bag is saved. Please try again shortly, or email <a href="mailto:hello@lumiereskincarecaps.com" style="color:#78350f;text-decoration:underline">hello@lumiereskincarecaps.com</a> and we\'ll take your order directly.';
+  const host = document.querySelector('.checkout-grid') || document.querySelector('main') || document.body;
+  host.insertBefore(bar, host.firstChild);
+})();
+
 // Returning from a cancelled Stripe Checkout
 if(new URLSearchParams(location.search).get('checkout') === 'cancel'){
   toast('Payment cancelled — your bag is still here.');

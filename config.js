@@ -11,7 +11,7 @@ window.LUMIERE_CONFIG = {
   /* ---------- ENVIRONMENT ---------- */
   // 'demo' takes no payments. Set to 'production' AFTER adding STRIPE_SECRET_KEY
   // in Netlify (Site configuration -> Environment variables). See PAYMENTS-SETUP.md.
-  env: 'demo',                         // 'demo' | 'staging' | 'production'
+  env: 'production',                   // 'demo' | 'staging' | 'production'
   siteUrl: 'https://lumiereskincarecaps.com',
   apiBase: '/api',                     // your backend base URL (Node, Rails, Django, etc.)
 

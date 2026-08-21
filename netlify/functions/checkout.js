@@ -32,6 +32,10 @@ exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 204, headers: { 'Allow': 'POST, OPTIONS' }, body: '' };
   }
+  // Health probe — lets the checkout page know up front whether payments work
+  if (event.httpMethod === 'GET') {
+    return json(200, { configured: !!process.env.STRIPE_SECRET_KEY });
+  }
   if (event.httpMethod !== 'POST') {
     return json(405, { error: 'Method not allowed' });
   }
