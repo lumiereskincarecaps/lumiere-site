@@ -273,12 +273,13 @@
   /* When an ingredient infographic is uploaded:
      - Drop the circular treatment so the FULL image shows
      - Make the background transparent + blend the image into the page so no hard edges show */
+  /* Uploaded ingredient wheel: crop to the circle itself, no square edges, blended into the page */
   .ing-visual.has-image{
-    aspect-ratio:auto !important;
+    aspect-ratio:1 !important;
     background:transparent !important;
-    border-radius:0 !important;
+    border-radius:50% !important;
     box-shadow:none !important;
-    overflow:visible !important;
+    overflow:hidden !important;
     display:block;
     width:100%;
     height:auto;
@@ -287,11 +288,13 @@
   .ing-visual.has-image::after{display:none !important}
   .ing-visual.has-image > img{
     width:100% !important;
-    height:auto !important;
+    height:100% !important;
     max-width:none !important;
-    object-fit:contain !important;
+    object-fit:cover !important;      /* fills the circle — no empty corners or letterboxing */
+    object-position:center !important;
     display:block !important;
-    border-radius:0 !important;
+    border-radius:50% !important;
+    transform:scale(1.06);            /* trims the graphic's outer margin so the wheel meets the edge */
     /* Blend the cream silk backdrop seamlessly into the page bg */
     mix-blend-mode:multiply;
     filter:drop-shadow(0 30px 60px rgba(139,111,63,0.18));
