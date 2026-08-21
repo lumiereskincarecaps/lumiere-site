@@ -812,6 +812,7 @@
             <div class="images-stat"><div class="v" id="img-count-uploaded">0</div><span class="l">Uploaded</span></div>
             <div class="images-stat"><div class="v" id="img-count-total">0</div><span class="l">Total Slots</span></div>
             <div class="images-stat"><div class="v" id="img-count-storage">0 MB</div><span class="l">Storage Used</span></div>
+            <div class="images-stat"><div class="v" id="img-count-seo">0</div><span class="l">SEO Complete</span></div>
           </div>
         </div>
 
@@ -2938,6 +2939,108 @@ seedInitialLogs();
 let currentUploadSlot = null;
 let currentUploadFile = null;
 
+/* ===== IMAGE SEO METADATA (alt text, caption, title, filename) ===== */
+const IMG_SEO_KEY = 'lumiere_image_seo';
+function loadImgSeo(){ try { return JSON.parse(localStorage.getItem(IMG_SEO_KEY)) || {}; } catch { return {}; } }
+function saveImgSeo(all){
+  try { localStorage.setItem(IMG_SEO_KEY, JSON.stringify(all)); flashSaved(); return true; }
+  catch(e){ toast('⚠ Could not save — browser storage blocked'); return false; }
+}
+function seoDone(slotId){
+  const m = loadImgSeo()[slotId];
+  return !!(m && m.alt && m.alt.trim());
+}
+function slugify(t){
+  return (t||'').toLowerCase().trim().replace(/[^a-z0-9\s-]/g,'').replace(/\s+/g,'-').replace(/-+/g,'-').slice(0,60);
+}
+
+function openImageSeo(slotId){
+  let slot = null;
+  for(const arr of Object.values(Lumiere.Images.SLOT_REGISTRY)){
+    const f = arr.find(x => x.id === slotId);
+    if(f){ slot = f; break; }
+  }
+  if(!slot) return;
+  const all = loadImgSeo();
+  const meta = all[slotId] || {};
+  $('#panel-title').textContent = 'Image SEO · ' + slot.label;
+  $('#panel-body').innerHTML = `
+    <p style="font-size:0.88rem;color:var(--ink-soft);margin-bottom:1.5rem">Describe this image the way you'd describe it to someone who can't see it. Google Images, screen readers, and AI search all read these fields.</p>
+
+    <div style="margin-bottom:1.2rem">
+      <label class="ch-label">Alt Text <span style="color:var(--red)">*</span> <span style="text-transform:none;letter-spacing:0;font-weight:400;color:var(--ink-soft)">— what the image shows (125 chars max)</span></label>
+      <input type="text" class="ch-input" id="seo-alt" maxlength="125" placeholder="${slot.label} — e.g. Lumière 7-day capsule sheet on a marble bathroom counter" value="${(meta.alt||'').replace(/"/g,'&quot;')}">
+      <div style="font-size:0.7rem;color:var(--ink-soft);margin-top:0.3rem"><span id="alt-count">0</span>/125 · Avoid "image of" — just describe it, include the product name naturally.</div>
+    </div>
+
+    <div style="margin-bottom:1.2rem">
+      <label class="ch-label">Caption <span style="text-transform:none;letter-spacing:0;font-weight:400;color:var(--ink-soft)">— visible text under the image (optional)</span></label>
+      <input type="text" class="ch-input" id="seo-caption" placeholder="One sheet. Twelve capsules. A full day of skincare." value="${(meta.caption||'').replace(/"/g,'&quot;')}">
+    </div>
+
+    <div style="margin-bottom:1.2rem">
+      <label class="ch-label">Title Attribute <span style="text-transform:none;letter-spacing:0;font-weight:400;color:var(--ink-soft)">— tooltip on hover (optional)</span></label>
+      <input type="text" class="ch-input" id="seo-title" placeholder="Lumière Skin Cap · 7-Day Pack" value="${(meta.title||'').replace(/"/g,'&quot;')}">
+    </div>
+
+    <div style="margin-bottom:1.2rem">
+      <label class="ch-label">SEO Filename <span style="text-transform:none;letter-spacing:0;font-weight:400;color:var(--ink-soft)">— used when the image is exported</span></label>
+      <div style="display:flex;gap:0.5rem;align-items:center">
+        <input type="text" class="ch-input" id="seo-filename" placeholder="lumiere-7-day-capsule-sheet" value="${(meta.filename||'').replace(/"/g,'&quot;')}">
+        <button class="btn btn-sm btn-ghost" id="seo-auto-name" style="white-space:nowrap">Auto</button>
+      </div>
+      <div style="font-size:0.7rem;color:var(--ink-soft);margin-top:0.3rem">Hyphens, lowercase, descriptive words — never IMG_1234.</div>
+    </div>
+
+    <div style="background:var(--cream);border-radius:10px;padding:1.2rem;margin-bottom:1.5rem">
+      <div style="font-size:0.68rem;letter-spacing:0.2em;text-transform:uppercase;color:var(--gold-deep);font-weight:700;margin-bottom:0.6rem">Google Images Preview</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:0.72rem;line-height:1.8;color:var(--ink-soft);word-break:break-all" id="seo-preview">—</div>
+    </div>
+
+    <div style="display:flex;gap:0.6rem;flex-wrap:wrap">
+      <button class="btn btn-success" id="seo-save">Save SEO Details</button>
+      <button class="btn btn-ghost" onclick="closePanel()">Cancel</button>
+    </div>
+    <p style="font-size:0.78rem;color:var(--ink-soft);margin-top:1rem;font-style:italic">Saved details are applied to every place this image appears across the site.</p>
+  `;
+
+  const altEl = $('#seo-alt'), capEl = $('#seo-caption'), titleEl = $('#seo-title'), fileEl = $('#seo-filename');
+  const refresh = () => {
+    $('#alt-count').textContent = altEl.value.length;
+    $('#seo-preview').innerHTML =
+      `&lt;img src="img/${fileEl.value.trim() || slugify(slot.label) || slot.id}.jpg"<br>` +
+      `&nbsp;&nbsp;&nbsp;&nbsp; alt="${altEl.value.trim() || '(missing — add alt text)'}"<br>` +
+      (titleEl.value.trim() ? `&nbsp;&nbsp;&nbsp;&nbsp; title="${titleEl.value.trim()}"<br>` : '') +
+      `&gt;` +
+      (capEl.value.trim() ? `<br>&lt;figcaption&gt;${capEl.value.trim()}&lt;/figcaption&gt;` : '');
+  };
+  [altEl, capEl, titleEl, fileEl].forEach(el => el.addEventListener('input', refresh));
+  refresh();
+
+  $('#seo-auto-name').addEventListener('click', () => {
+    fileEl.value = slugify(altEl.value || slot.label);
+    refresh();
+  });
+
+  $('#seo-save').addEventListener('click', () => {
+    if(!altEl.value.trim()){ toast('Alt text is required — it is the single most important field for Google Images'); altEl.focus(); return; }
+    const all = loadImgSeo();
+    all[slotId] = {
+      alt: altEl.value.trim(),
+      caption: capEl.value.trim(),
+      title: titleEl.value.trim(),
+      filename: fileEl.value.trim() || slugify(altEl.value),
+      updatedAt: new Date().toISOString()
+    };
+    saveImgSeo(all);
+    toast('✓ Image SEO saved — applied site-wide');
+    closePanel();
+    renderImages();
+  });
+
+  openPanel();
+}
+
 async function renderImages(){
   const all = await Lumiere.Images.list();
   const map = {};
@@ -2952,6 +3055,13 @@ async function renderImages(){
   document.getElementById('img-count-uploaded').textContent = all.length;
   document.getElementById('img-count-total').textContent = totalSlots;
   document.getElementById('img-count-storage').textContent = (totalBytes / 1024 / 1024).toFixed(1) + ' MB';
+  const seoAll = loadImgSeo();
+  const seoCount = Object.values(seoAll).filter(m => m && m.alt && m.alt.trim()).length;
+  const seoEl = document.getElementById('img-count-seo');
+  if(seoEl){
+    seoEl.textContent = seoCount + '/' + totalSlots;
+    seoEl.style.color = seoCount === 0 ? '' : (seoCount >= totalSlots ? 'var(--green)' : 'var(--amber)');
+  }
 
   const wrap = document.getElementById('image-sections');
   wrap.innerHTML = Object.entries(reg).map(([sectionName, slots]) => {
@@ -2985,8 +3095,10 @@ async function renderImages(){
                   <div class="slot-actions">
                     ${img
                       ? `<button class="slot-btn primary" data-upload-slot="${slot.id}">Replace</button>
+                         <button class="slot-btn" data-seo-slot="${slot.id}">SEO${seoDone(slot.id) ? ' ✓' : ''}</button>
                          <button class="slot-btn danger" data-delete-slot="${slot.id}">Delete</button>`
-                      : `<button class="slot-btn primary" data-upload-slot="${slot.id}">Upload Image</button>`}
+                      : `<button class="slot-btn primary" data-upload-slot="${slot.id}">Upload Image</button>
+                         <button class="slot-btn" data-seo-slot="${slot.id}">SEO${seoDone(slot.id) ? ' ✓' : ''}</button>`}
                   </div>
                 </div>
               `;
@@ -3000,6 +3112,9 @@ async function renderImages(){
   // Wire upload triggers
   document.querySelectorAll('[data-upload-slot]').forEach(el => {
     el.addEventListener('click', e => openUploadModal(el.dataset.uploadSlot));
+  });
+  document.querySelectorAll('[data-seo-slot]').forEach(el => {
+    el.addEventListener('click', e => { e.stopPropagation(); openImageSeo(el.dataset.seoSlot); });
   });
   document.querySelectorAll('[data-delete-slot]').forEach(el => {
     el.addEventListener('click', async e => {

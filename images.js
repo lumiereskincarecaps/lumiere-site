@@ -236,6 +236,13 @@
     document.head.appendChild(s);
   }
 
+  /* ---------- IMAGE SEO METADATA ---------- */
+  const IMG_SEO_KEY = 'lumiere_image_seo';
+  function getSeo(slotId){
+    try { return (JSON.parse(localStorage.getItem(IMG_SEO_KEY)) || {})[slotId] || null; }
+    catch(e){ return null; }
+  }
+
   /* ---------- AUTO-APPLY TO PAGE ---------- */
   async function applyToPage(){
     injectGlobalStyles();
@@ -255,6 +262,10 @@
       // Decide how to apply
       if(el.tagName === 'IMG'){
         el.src = url;
+        const seo = getSeo(id);
+        if(seo && seo.alt) el.alt = seo.alt;
+        if(seo && seo.title) el.title = seo.title;
+        el.loading = 'lazy';
         el.classList.add('has-image');
       } else if(el.dataset.slotMode === 'bg'){
         el.style.backgroundImage = `url("${url}")`;
@@ -271,9 +282,13 @@
         el.classList.add('has-image');
       } else {
         // Default: replace inner contents with an img preserving alt text
-        const alt = el.dataset.slotAlt || el.dataset.slot;
+        const seo = getSeo(id);
+        const alt = (seo && seo.alt) || el.dataset.slotAlt || el.dataset.slot;
+        const titleAttr = seo && seo.title ? ` title="${seo.title.replace(/"/g,'&quot;')}"` : '';
         const fit = el.dataset.slotFit || 'cover';
-        el.innerHTML = `<img src="${url}" alt="${alt}" style="width:100%;height:100%;object-fit:${fit};display:block;border-radius:inherit">`;
+        const caption = seo && seo.caption
+          ? `<figcaption style="font-size:0.8rem;color:#3a3a38;font-style:italic;text-align:center;margin-top:0.6rem">${seo.caption}</figcaption>` : '';
+        el.innerHTML = `<img src="${url}" alt="${alt.replace(/"/g,'&quot;')}"${titleAttr} loading="lazy" style="width:100%;height:100%;object-fit:${fit};display:block;border-radius:inherit">${caption}`;
         el.classList.add('has-image');
       }
     });
