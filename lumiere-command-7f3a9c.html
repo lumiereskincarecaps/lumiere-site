@@ -3557,6 +3557,36 @@ $('#panel-overlay').addEventListener('click', closePanel);
    ====================================================== */
 const DEPLOY_KEY = 'lumiere_deploy_state';
 
+/* ======================================================
+   SERVER-TRUTH SERVICE STATUS
+   Reads real env-var state from the Netlify function so this
+   panel shows the same thing on every device, not whatever is
+   cached in one browser. Secrets are never sent to the browser.
+   ====================================================== */
+let SERVER_STATUS = null;
+let SERVER_STATUS_ERR = null;
+
+async function loadServerStatus(){
+  try {
+    const r = await fetch('/api/services/status?t=' + Date.now(), { cache: 'no-store' });
+    if(!r.ok) throw new Error('HTTP ' + r.status);
+    SERVER_STATUS = await r.json();
+    SERVER_STATUS_ERR = null;
+  } catch(e){
+    SERVER_STATUS = null;
+    SERVER_STATUS_ERR = e.message || 'unreachable';
+  }
+  return SERVER_STATUS;
+}
+
+/* A service counts as connected only if the SERVER says so. */
+function isServiceConnected(key){
+  if(SERVER_STATUS && SERVER_STATUS.services && SERVER_STATUS.services[key]){
+    return !!SERVER_STATUS.services[key].connected;
+  }
+  return false;
+}
+
 function loadDeployState(){
   try { return JSON.parse(localStorage.getItem(DEPLOY_KEY)) || defaultDeployState(); }
   catch { return defaultDeployState(); }
@@ -3643,9 +3673,42 @@ function agentConnections(id){
   return { ready: missing.length === 0, missing, w };
 }
 
+/* ------------------------------------------------------------------
+   ONE-TIME SECURITY PURGE
+   Earlier builds let credentials be typed into this page, which stored
+   them in localStorage. They were never usable by the server and are a
+   real risk sitting in a browser, so remove them on sight.
+   ------------------------------------------------------------------ */
+(function purgeStoredSecrets(){
+  try {
+    const raw = localStorage.getItem(DEPLOY_KEY);
+    if(!raw) return;
+    const s = JSON.parse(raw);
+    let removed = 0;
+    if(s.serviceConfigs){ removed += Object.keys(s.serviceConfigs).length; delete s.serviceConfigs; }
+    if(Array.isArray(s.envVars)){
+      const before = s.envVars.length;
+      s.envVars = s.envVars.filter(v => v.scope !== 'secret');
+      removed += before - s.envVars.length;
+    }
+    delete s.connections;   // connection state now comes from the server
+    if(removed){
+      localStorage.setItem(DEPLOY_KEY, JSON.stringify(s));
+      console.warn('[Lumiere] Removed ' + removed + ' credential entr(ies) from browser storage. Set them in Netlify instead.');
+      window._purgedSecrets = removed;
+    }
+  } catch(e){}
+})();
+
 let deployState = loadDeployState();
+deployState.connections = deployState.connections || {};
 let isDeploying = false;
 let logs = [];
+
+async function refreshServerStatusAndRender(){
+  await loadServerStatus();
+  renderDeploy();
+}
 
 function renderDeploy(){
   const s = deployState;
@@ -3702,10 +3765,21 @@ function renderDeploy(){
 
   // Connections
   const grid = document.getElementById('conn-grid');
-  const connectedCount = Object.values(s.connections).filter(Boolean).length;
-  document.getElementById('conn-counter').textContent = `${connectedCount} of ${SERVICES.length} connected`;
+  const connectedCount = SERVICES.filter(svc => isServiceConnected(svc.key)).length;
+  const counter = document.getElementById('conn-counter');
+  counter.textContent = SERVER_STATUS
+    ? `${connectedCount} of ${SERVICES.length} connected · live from server`
+    : `Server status unavailable${SERVER_STATUS_ERR ? ' (' + SERVER_STATUS_ERR + ')' : ''}`;
   grid.innerHTML = SERVICES.map(svc => {
-    const isConn = s.connections[svc.key];
+    const st = (SERVER_STATUS && SERVER_STATUS.services) ? SERVER_STATUS.services[svc.key] : null;
+    const isConn = !!(st && st.connected);
+    const partial = !!(st && st.partial && !st.connected);
+    const detail = st
+      ? (st.connected
+          ? st.vars.filter(v=>v.present).map(v=>`<code style="font-size:0.68rem;background:rgba(138,154,123,0.14);padding:0.1rem 0.35rem;border-radius:3px">${v.env}</code>`).join(' ')
+          : `<span style="font-size:0.72rem;color:var(--ink-soft)">Missing on server: ${(st.missing||[]).map(m=>`<code style="font-size:0.68rem">${m}</code>`).join(', ') || '—'}</span>`)
+      : '';
+    const badLabel = partial ? 'Partly Set' : 'Not Connected';
     return `
       <div class="conn-card">
         <div class="conn-head">
@@ -3714,9 +3788,10 @@ function renderDeploy(){
             <div class="conn-name">${svc.name}</div>
             <div class="conn-role">${svc.role}</div>
           </div>
-          <span class="conn-status ${isConn ? 'cs-connected' : 'cs-not-connected'}">${isConn ? '✓ Connected' : 'Not Connected'}</span>
+          <span class="conn-status ${isConn ? 'cs-connected' : 'cs-not-connected'}">${isConn ? '✓ Connected' : badLabel}</span>
         </div>
         <div class="conn-desc">${svc.desc}</div>
+        <div style="margin:0.5rem 0 0.2rem;line-height:1.8">${detail}</div>
         <div class="conn-actions">
           ${isConn
             ? `<button class="btn-conn btn-conn-ghost" data-config-conn="${svc.key}">Configure</button>
@@ -3731,13 +3806,9 @@ function renderDeploy(){
   document.querySelectorAll('[data-config-conn]').forEach(b => b.addEventListener('click', () => openServiceConnect(b.dataset.configConn)));
   document.querySelectorAll('[data-disconnect-conn]').forEach(b => b.addEventListener('click', () => {
     const k = b.dataset.disconnectConn;
-    s.connections[k] = false;
-    saveDeployState(s);
-    addLog('warn', `${SERVICES.find(x=>x.key===k).name} disconnected (credentials kept)`);
-    if(typeof renderAgentGrid === 'function') renderAgentGrid();
-    if(typeof renderAgentHealth === 'function') renderAgentHealth();
-    toast(`${SERVICES.find(x=>x.key===k).name} disconnected`);
-    renderDeploy();
+    const nm = SERVICES.find(x=>x.key===k).name;
+    addLog('warn', `${nm} is connected via server environment variables — remove them in Netlify to disconnect.`);
+    toast(`To disconnect ${nm}, delete its variables in Netlify → Environment variables`);
   }));
   document.querySelectorAll('[data-test-conn]').forEach(b => b.addEventListener('click', () => {
     const k = b.dataset.testConn;
@@ -3979,49 +4050,80 @@ function openServiceConnect(k){
   const svc = SERVICES.find(x => x.key === k);
   const fields = SERVICE_FIELDS[k];
   if(!svc || !fields) return;
-  const s = deployState;
-  s.serviceConfigs = s.serviceConfigs || {};
-  const cfg = s.serviceConfigs[k] || (s.serviceConfigs[k] = {});
-  $('#panel-title').textContent = 'Connect ' + svc.name;
+
+  const st = (SERVER_STATUS && SERVER_STATUS.services) ? SERVER_STATUS.services[k] : null;
+  const siteName = (SERVER_STATUS && SERVER_STATUS.siteName) || 'your site';
+
+  $('#panel-title').textContent = svc.name + ' — Server Configuration';
+
+  const rows = fields.map(f => {
+    const v = st ? (st.vars || []).find(x => x.env === f.env) : null;
+    const present = !!(v && v.present);
+    const valid   = !!(v && v.valid);
+    const badge = present
+      ? (valid
+          ? '<span style="color:#1f7a3d;font-weight:600;font-size:0.72rem">SET</span>'
+          : '<span style="color:#b3261e;font-weight:600;font-size:0.72rem">WRONG FORMAT</span>')
+      : (f.optional
+          ? '<span style="color:var(--ink-soft);font-size:0.72rem">optional</span>'
+          : '<span style="color:#7a5518;font-weight:600;font-size:0.72rem">MISSING</span>');
+    const preview = v && v.preview
+      ? `<div style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;color:var(--ink-soft);margin-top:0.25rem">${v.preview}</div>` : '';
+    const hint = v && v.hint
+      ? `<div style="font-size:0.72rem;color:#b3261e;margin-top:0.25rem">${v.hint}</div>` : '';
+    return `
+      <div style="display:flex;justify-content:space-between;gap:1rem;align-items:flex-start;padding:0.8rem 0;border-bottom:1px solid var(--line)">
+        <div style="min-width:0">
+          <div style="font-size:0.8rem;font-weight:500">${f.label}</div>
+          <code style="font-size:0.72rem;color:var(--gold-deep)">${f.env}</code>
+          ${preview}${hint}
+        </div>
+        <div style="white-space:nowrap;padding-top:0.15rem">${badge}</div>
+      </div>`;
+  }).join('');
+
+  const secretNames = fields.filter(f => f.scope === 'secret').map(f => f.env);
+
   $('#panel-body').innerHTML = `
-    <p style="font-size:0.9rem;color:var(--ink-soft);margin-bottom:0.5rem">${svc.desc}</p>
-    <p style="font-size:0.8rem;margin-bottom:1.5rem">Get your keys at <a href="${svc.docs}" target="_blank" style="color:var(--gold-deep);text-decoration:underline">${svc.docs.replace('https://','')}</a></p>
-    ${fields.map(f => `
-      <div style="margin-bottom:1.1rem">
-        <label class="ch-label">${f.label} <span style="color:var(--ink-soft);font-weight:400;text-transform:none;letter-spacing:0">→ ${f.env} (${f.scope})</span></label>
-        <input type="${f.scope === 'secret' ? 'password' : 'text'}" class="ch-input" data-svc-field="${f.key}" placeholder="${f.ph}" value="${(cfg[f.key]||'').replace(/"/g,'&quot;')}">
-      </div>`).join('')}
-    <div style="display:flex;gap:0.6rem;flex-wrap:wrap;margin-top:1.5rem">
-      <button class="btn btn-success" id="svc-connect">Save &amp; Connect</button>
-      <button class="btn btn-ghost" onclick="closePanel()">Cancel</button>
+    <p style="font-size:0.9rem;color:var(--ink-soft);margin-bottom:1rem">${svc.desc}</p>
+
+    ${SERVER_STATUS ? '' : `<div style="background:#fef3c7;border:1px solid #f59e0b;color:#92400e;padding:0.8rem 1rem;border-radius:8px;font-size:0.82rem;margin-bottom:1.2rem">
+      Could not reach the server to read live status${SERVER_STATUS_ERR ? ' (' + SERVER_STATUS_ERR + ')' : ''}. The states below may be incomplete.</div>`}
+
+    <div style="background:var(--cream);border-radius:8px;padding:0.9rem 1.1rem;margin-bottom:1.4rem;font-size:0.82rem;line-height:1.7">
+      <strong>Credentials are set on the server, not here.</strong>
+      Secret keys must never be typed into a web page &mdash; anything stored in this browser
+      is readable by extensions and never reaches the server that actually needs it.
+      This panel shows you what the server currently has.
     </div>
-    <p style="font-size:0.78rem;color:var(--ink-soft);margin-top:1rem;font-style:italic">Saved values sync automatically into the Environment Variables table below (demo mode: stored in this browser only).</p>
+
+    <div style="margin-bottom:1.5rem">${rows}</div>
+
+    <div style="font-size:0.84rem;line-height:1.9;background:#fff;border:1px solid var(--line);border-radius:8px;padding:1rem 1.2rem">
+      <strong style="display:block;margin-bottom:0.5rem">To set these:</strong>
+      1. Get your keys at <a href="${svc.docs}" target="_blank" style="color:var(--gold-deep);text-decoration:underline">${svc.docs.replace('https://','')}</a><br>
+      2. Open <a href="https://app.netlify.com" target="_blank" style="color:var(--gold-deep);text-decoration:underline">app.netlify.com</a> &rarr; site <code>${siteName}</code><br>
+      3. <strong>Site configuration &rarr; Environment variables &rarr; Add a variable</strong><br>
+      4. Add ${fields.filter(f=>!f.optional).map(f=>`<code>${f.env}</code>`).join(', ')}<br>
+      5. <strong>Deploys &rarr; Trigger deploy &rarr; Clear cache and deploy site</strong>
+      ${secretNames.length ? `<div style="margin-top:0.7rem;font-size:0.78rem;color:var(--ink-soft)">${secretNames.map(n=>`<code>${n}</code>`).join(', ')} ${secretNames.length>1?'are':'is'} secret &mdash; ${secretNames.length>1?'they':'it'} will never be shown back to you here.</div>` : ''}
+    </div>
+
+    <div style="display:flex;gap:0.6rem;flex-wrap:wrap;margin-top:1.5rem">
+      <button class="btn btn-success" id="svc-recheck">Re-check Server</button>
+      <button class="btn btn-ghost" onclick="closePanel()">Close</button>
+    </div>
   `;
-  // Autosave each service credential field as you type
-  $('#panel-body').querySelectorAll('[data-svc-field]').forEach(inp => {
-    inp.addEventListener('input', () => {
-      cfg[inp.dataset.svcField] = inp.value.trim();
-      clearTimeout(window._svcSaveT);
-      window._svcSaveT = setTimeout(() => saveDeployState(s), 400);
-    });
-  });
-  $('#panel-body').querySelector('#svc-connect').addEventListener('click', () => {
-    $('#panel-body').querySelectorAll('[data-svc-field]').forEach(inp => cfg[inp.dataset.svcField] = inp.value.trim());
-    const missing = fields.filter(f => !f.optional && !(cfg[f.key] || '').trim());
-    if(missing.length){
-      toast('Missing: ' + missing.map(f => f.label).join(', '));
-      return;
-    }
-    fields.forEach(f => { if((cfg[f.key]||'').trim()) upsertEnvVar(s, f.env, cfg[f.key], f.scope); });
-    s.connections[k] = true;
-    saveDeployState(s);
-    addLog('success', `✓ ${svc.name} connected — ${fields.filter(f=>(cfg[f.key]||'').trim()).length} env var(s) synced`);
-    if(typeof renderAgentGrid === 'function') renderAgentGrid();
-    if(typeof renderAgentHealth === 'function') renderAgentHealth();
-    toast(`✓ ${svc.name} connected`);
-    closePanel();
+
+  $('#panel-body').querySelector('#svc-recheck').addEventListener('click', async () => {
+    const b = $('#panel-body').querySelector('#svc-recheck');
+    b.disabled = true; b.textContent = 'Checking…';
+    await loadServerStatus();
+    toast(isServiceConnected(k) ? `✓ ${svc.name} is connected` : `${svc.name} still not configured on the server`);
     renderDeploy();
+    openServiceConnect(k);
   });
+
   openPanel();
 }
 
@@ -4050,7 +4152,10 @@ document.getElementById('clear-field-memory')?.addEventListener('click', () => {
   toast('✓ Saved form entries cleared');
 });
 document.addEventListener('click', e => {
-  if(e.target.closest('[data-view="deploy"]')) setTimeout(renderFieldMemoryCount, 60);
+  if(e.target.closest('[data-view="deploy"]')){
+    setTimeout(renderFieldMemoryCount, 60);
+    refreshServerStatusAndRender();   // always re-read server truth on tab open
+  }
 });
 document.addEventListener('DOMContentLoaded', () => setTimeout(renderFieldMemoryCount, 300));
 
@@ -4576,6 +4681,10 @@ renderRefunds();
 renderSEO();
 renderAudit();
 renderDeploy();
+refreshServerStatusAndRender();
+if(window._purgedSecrets){
+  setTimeout(() => toast('Removed ' + window._purgedSecrets + ' saved credential(s) from this browser — set them in Netlify instead'), 1200);
+}
 renderSubscriptionsAdmin();
 seedInitialLogs();
 

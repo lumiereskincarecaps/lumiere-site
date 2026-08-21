@@ -19,3 +19,9 @@
   to = "/.netlify/functions/verify"
   status = 200
   force = true
+
+[[redirects]]
+  from = "/api/services/status"
+  to = "/.netlify/functions/services"
+  status = 200
+  force = true
