@@ -18,8 +18,8 @@
   "@type": "ItemList",
   "name": "Lumière Capsule Packs",
   "itemListElement": [
-    { "@type":"Product", "position":1, "name":"3-Day Trial Pack", "offers":{ "@type":"Offer","price":"24.00","priceCurrency":"USD","availability":"https://schema.org/InStock"}, "description":"3 sheets · 21 single capsules · A weekend with the ritual." },
-    { "@type":"Product", "position":2, "name":"7-Day Pack",       "offers":{ "@type":"Offer","price":"49.00","priceCurrency":"USD","availability":"https://schema.org/InStock"}, "description":"7 sheets · 49 single capsules · A full week of glow." },
+    { "@type":"Product", "position":1, "name":"3-Day Trial Pack", "offers":{ "@type":"Offer","price":"24.00","priceCurrency":"USD","availability":"https://schema.org/InStock"}, "description":"3 sheets · 36 single capsules · A weekend with the ritual." },
+    { "@type":"Product", "position":2, "name":"7-Day Pack",       "offers":{ "@type":"Offer","price":"49.00","priceCurrency":"USD","availability":"https://schema.org/InStock"}, "description":"7 sheets · 84 single capsules · A full week of glow." },
     { "@type":"Product", "position":3, "name":"Deluxe Set",       "offers":{ "@type":"Offer","price":"69.00","priceCurrency":"USD","availability":"https://schema.org/InStock"}, "description":"7-Day pack + Exfoliating &amp; Facial Sponges (set of 2)." },
     { "@type":"Product", "position":4, "name":"Hydrating Hydrogel Mask", "offers":{ "@type":"Offer","price":"12.99","priceCurrency":"USD","availability":"https://schema.org/InStock"}, "description":"Non-dripping hydrogel sheet mask designed for in-flight use. 1 mask · 25g." }
   ]
@@ -422,9 +422,9 @@
         </div>
         <span class="per-day">$8 / day</span>
         <ul class="features">
-          <li>3 complete 7-step routines</li>
-          <li>3 sheets · 21 single capsules</li>
-          <li>7 capsules per day · one per step</li>
+          <li>3 complete days · morning &amp; evening</li>
+          <li>3 sheets · 36 single capsules</li>
+          <li>12 capsules per day · 6 morning, 6 night</li>
           <li>Perfect for a long weekend or first try</li>
           <li>Free U.S. shipping over $75</li>
         </ul>
@@ -461,9 +461,9 @@
         </div>
         <span class="per-day">$7 / day</span>
         <ul class="features">
-          <li>7 complete 7-step routines</li>
-          <li>7 sheets · 49 single capsules</li>
-          <li>7 capsules per day · one per step</li>
+          <li>7 complete days · morning &amp; evening</li>
+          <li>7 sheets · 84 single capsules</li>
+          <li>12 capsules per day · 6 morning, 6 night</li>
           <li>Includes Lumière Travel Size Box</li>
           <li>Free U.S. shipping over $75</li>
         </ul>
@@ -527,7 +527,7 @@
         </div>
         <span class="per-day">Save $10 vs. buying separately</span>
         <ul class="features">
-          <li>7-Day Capsule Pack (49 capsules)</li>
+          <li>7-Day Capsule Pack (84 capsules)</li>
           <li>Exfoliating &amp; Facial Sponges (set of 2)</li>
           <li>Plant-based sponges</li>
           <li>Free U.S. shipping &amp; gift packaging</li>
@@ -754,7 +754,7 @@
       </details>
       <details class="faq-item">
         <summary class="faq-q">What's actually in the Deluxe Set?</summary>
-        <div class="faq-a">A full 7-Day Capsule Pack (49 capsules) and our Exfoliating &amp; Facial Sponges (set of 2) — for $10 less than buying both separately.</div>
+        <div class="faq-a">A full 7-Day Capsule Pack (84 capsules) and our Exfoliating &amp; Facial Sponges (set of 2) — for $10 less than buying both separately.</div>
       </details>
       <details class="faq-item">
         <summary class="faq-q">Can I subscribe and save on every pack?</summary>
@@ -833,8 +833,8 @@
   // Real cart system — wires to localStorage via api.js, ready for real backend
   const toast = document.getElementById('toast');
   const PRODUCT_META = {
-    '3-Day Trial Pack': { sku:'LUM-3DAY',  meta:'3 sheets · 21 capsules' },
-    '7-Day Pack':       { sku:'LUM-7DAY',  meta:'7 sheets · 49 capsules' },
+    '3-Day Trial Pack': { sku:'LUM-3DAY',  meta:'3 sheets · 36 capsules' },
+    '7-Day Pack':       { sku:'LUM-7DAY',  meta:'7 sheets · 84 capsules' },
     'Deluxe Set':       { sku:'LUM-DLX',   meta:'7-Day Pack + Exfoliating Sponges' }
   };
   document.querySelectorAll('.add-btn').forEach(btn => {
