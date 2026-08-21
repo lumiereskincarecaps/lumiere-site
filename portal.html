@@ -286,6 +286,11 @@
   /* PROFILE / ACCOUNT */
   .profile-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-bottom:3rem}
   @media(max-width:768px){.profile-grid{grid-template-columns:1fr}}
+  /* Inline edit forms in the account view */
+  .profile-card .field{margin-bottom:0.9rem}
+  .profile-card .field label{display:block;font-size:0.65rem;text-transform:uppercase;letter-spacing:0.16em;color:var(--ink-soft);font-weight:600;margin-bottom:0.35rem}
+  .profile-card .field input{width:100%;padding:0.75rem 0.9rem;border-radius:8px;border:1px solid var(--line);background:var(--cream);font-family:'Inter',sans-serif;font-size:0.9rem;color:var(--ink);font-weight:300}
+  .profile-card .field input:focus{outline:none;border-color:var(--gold);background:var(--paper);box-shadow:0 0 0 3px rgba(212,184,150,0.15)}
   .profile-card{
     background:var(--paper);border-radius:14px;padding:2rem;border:1px solid var(--line);
   }
@@ -592,7 +597,7 @@
       </div>
     </form>
 
-    <div class="demo-accounts">
+    <div class="demo-accounts hidden" id="demo-accounts">
       <h4>Demo Accounts · Click to auto-fill</h4>
       <div class="demo-row">
         <div>
@@ -803,17 +808,39 @@
         <div class="profile-grid">
           <div class="profile-card">
             <h4>Profile</h4>
-            <div class="profile-row"><span class="k">Name</span><span class="v" id="acc-name">—</span></div>
-            <div class="profile-row"><span class="k">Email</span><span class="v" id="acc-email">—</span></div>
-            <div class="profile-row"><span class="k">Member Since</span><span class="v" id="acc-since">—</span></div>
-            <div class="profile-row"><span class="k">Account Type</span><span class="v" id="acc-type">Customer</span></div>
-            <button class="btn-primary btn-secondary" style="margin-top:1.5rem" id="signout-acc">Sign Out</button>
+            <div id="profile-view">
+              <div class="profile-row"><span class="k">Name</span><span class="v" id="acc-name">—</span></div>
+              <div class="profile-row"><span class="k">Email</span><span class="v" id="acc-email">—</span></div>
+              <div class="profile-row"><span class="k">Phone</span><span class="v" id="acc-phone">—</span></div>
+              <div class="profile-row"><span class="k">Member Since</span><span class="v" id="acc-since">—</span></div>
+              <div class="profile-row"><span class="k">Account Type</span><span class="v" id="acc-type">Customer</span></div>
+              <button class="btn-primary" style="margin-top:1.5rem" id="edit-profile">Edit My Details</button>
+              <button class="btn-primary btn-secondary" style="margin-top:0.5rem" id="signout-acc">Sign Out</button>
+            </div>
+            <form id="profile-form" class="hidden" style="margin-top:0.5rem">
+              <div class="field"><label>Full Name</label><input type="text" id="pf-name" required></div>
+              <div class="field"><label>Email</label><input type="email" id="pf-email" required></div>
+              <div class="field"><label>Phone</label><input type="tel" id="pf-phone" placeholder="Optional"></div>
+              <button type="submit" class="btn-primary" style="margin-top:0.8rem">Save Changes</button>
+              <button type="button" class="btn-primary btn-secondary" style="margin-top:0.5rem" id="cancel-profile">Cancel</button>
+            </form>
           </div>
           <div class="profile-card">
             <h4>Default Shipping</h4>
-            <div class="profile-row"><span class="k">Recipient</span><span class="v" id="acc-ship-name">—</span></div>
-            <div class="profile-row"><span class="k">Address</span><span class="v" id="acc-ship-addr" style="text-align:right;max-width:60%">—</span></div>
-            <button class="btn-primary btn-secondary" style="margin-top:1.5rem" onclick="(function(){const a=prompt('New shipping address (street, city, state zip):');if(a){document.getElementById('acc-ship-addr').textContent=a;toast('Shipping address updated');}})()">Edit Address</button>
+            <div id="ship-view">
+              <div class="profile-row"><span class="k">Recipient</span><span class="v" id="acc-ship-name">—</span></div>
+              <div class="profile-row"><span class="k">Address</span><span class="v" id="acc-ship-addr" style="text-align:right;max-width:60%">—</span></div>
+              <button class="btn-primary btn-secondary" style="margin-top:1.5rem" id="edit-address">Edit Address</button>
+            </div>
+            <form id="address-form" class="hidden" style="margin-top:0.5rem">
+              <div class="field"><label>Street Address</label><input type="text" id="af-street" placeholder="123 Main St, Apt 4"></div>
+              <div class="field"><label>City</label><input type="text" id="af-city"></div>
+              <div class="field"><label>State / Region</label><input type="text" id="af-state"></div>
+              <div class="field"><label>ZIP / Postal Code</label><input type="text" id="af-zip"></div>
+              <div class="field"><label>Country</label><input type="text" id="af-country" placeholder="United States"></div>
+              <button type="submit" class="btn-primary" style="margin-top:0.8rem">Save Address</button>
+              <button type="button" class="btn-primary btn-secondary" style="margin-top:0.5rem" id="cancel-address">Cancel</button>
+            </form>
           </div>
           <div class="profile-card">
             <h4>Communication</h4>
@@ -825,7 +852,7 @@
           <div class="profile-card">
             <h4>Account Actions</h4>
             <p style="font-size:0.85rem;margin-bottom:1rem">Change your password, download your data, or close your account.</p>
-            <button class="btn-primary btn-secondary" style="margin-bottom:0.5rem" onclick="(function(){const p=prompt('New password (min 8 characters):');if(p&&p.length>=8){toast('Password updated');}else if(p){toast('Password must be at least 8 characters');}})()">Change Password</button>
+            <button class="btn-primary btn-secondary" style="margin-bottom:0.5rem" id="change-password">Change Password</button>
             <button class="btn-primary btn-secondary" onclick="(function(){const u=JSON.parse(sessionStorage.getItem('lumiere_session')||localStorage.getItem('lumiere_session')||'{}');const blob=new Blob([JSON.stringify({account:u,exportedAt:new Date().toISOString()},null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='lumiere-my-data.json';a.click();toast('Your data export has downloaded');})()">Download My Data</button>
           </div>
         </div>
@@ -983,6 +1010,17 @@ $$('[data-switch]').forEach(a => a.addEventListener('click', e => {
   $$('.auth-form').forEach(f => f.classList.toggle('active', f.id === 'form-' + target));
   clearAuthError();
 }));
+
+/* Demo accounts panel is owner-only.
+   Visible when: ?demo=1 in the URL, or the owner previously signed in on this browser. */
+(function(){
+  const OWNER_FLAG = 'lumiere_owner_device';
+  const params = new URLSearchParams(location.search);
+  if(params.get('demo') === '1'){ try { localStorage.setItem(OWNER_FLAG,'1'); } catch(e){} }
+  let isOwnerDevice = false;
+  try { isOwnerDevice = localStorage.getItem(OWNER_FLAG) === '1'; } catch(e){}
+  if(isOwnerDevice) document.getElementById('demo-accounts')?.classList.remove('hidden');
+})();
 
 $$('[data-demo]').forEach(b => b.addEventListener('click', () => {
   $('#login-email').value = b.dataset.demo;
@@ -1536,11 +1574,110 @@ document.getElementById('add-sub-btn-empty')?.addEventListener('click', () => op
 function renderAccount(user){
   $('#acc-name').textContent = user.name;
   $('#acc-email').textContent = user.email;
+  $('#acc-phone').textContent = user.phone || '—';
   $('#acc-since').textContent = fmtDate(user.createdAt);
   $('#acc-type').textContent = ADMIN_EMAILS.includes(user.email) ? 'Founder · Admin' : 'Customer';
   $('#acc-ship-name').textContent = user.name;
-  $('#acc-ship-addr').textContent = user.address || 'No address on file — add one at checkout.';
+  $('#acc-ship-addr').textContent = user.address || 'No address on file — add one below.';
 }
+
+/* ========= EDIT MY DETAILS (saved to the account record) ========= */
+function currentUser(){
+  const users = loadUsers();
+  return users[CURRENT_EMAIL] || null;
+}
+function persistUser(updated, newEmail){
+  const users = loadUsers();
+  const oldEmail = CURRENT_EMAIL;
+  if(newEmail && newEmail !== oldEmail){
+    if(users[newEmail]){ toast('That email is already registered'); return false; }
+    delete users[oldEmail];
+    updated.email = newEmail;
+    users[newEmail] = updated;
+    CURRENT_EMAIL = newEmail;
+    const sess = JSON.stringify({ email:newEmail });
+    if(sessionStorage.getItem(SESSION_KEY)) sessionStorage.setItem(SESSION_KEY, sess);
+    if(localStorage.getItem(SESSION_KEY)) localStorage.setItem(SESSION_KEY, sess);
+  } else {
+    users[oldEmail] = updated;
+  }
+  saveUsers(users);
+  // Mirror the change to the backend layer so order/CRM records stay in sync
+  try { Lumiere?.Customers?.update?.(updated.email, updated); } catch(e){}
+  return true;
+}
+
+$('#edit-profile')?.addEventListener('click', () => {
+  const u = currentUser(); if(!u) return;
+  $('#pf-name').value = u.name || '';
+  $('#pf-email').value = u.email || '';
+  $('#pf-phone').value = u.phone || '';
+  $('#profile-view').classList.add('hidden');
+  $('#profile-form').classList.remove('hidden');
+});
+$('#cancel-profile')?.addEventListener('click', () => {
+  $('#profile-form').classList.add('hidden');
+  $('#profile-view').classList.remove('hidden');
+});
+$('#profile-form')?.addEventListener('submit', e => {
+  e.preventDefault();
+  const u = currentUser(); if(!u) return;
+  const newEmail = $('#pf-email').value.trim().toLowerCase();
+  const updated = { ...u, name: $('#pf-name').value.trim(), phone: $('#pf-phone').value.trim() };
+  if(!updated.name){ toast('Name cannot be empty'); return; }
+  if(!persistUser(updated, newEmail)) return;
+  $('#profile-form').classList.add('hidden');
+  $('#profile-view').classList.remove('hidden');
+  renderAccount(currentUser());
+  $('#portal-name').textContent = updated.name.split(' ')[0] + '.';
+  toast('✓ Your details were saved');
+});
+
+$('#change-password')?.addEventListener('click', () => {
+  const u = currentUser(); if(!u) return;
+  const current = prompt('Enter your current password:');
+  if(current === null) return;
+  if(hash(current) !== u.password){ toast('Current password is incorrect'); return; }
+  const next = prompt('New password (min 8 characters):');
+  if(next === null) return;
+  if(next.length < 8){ toast('Password must be at least 8 characters'); return; }
+  persistUser({ ...u, password: hash(next) }, null);
+  toast('✓ Password updated');
+});
+
+$('#edit-address')?.addEventListener('click', () => {
+  const u = currentUser(); if(!u) return;
+  const a = u.addressParts || {};
+  $('#af-street').value = a.street || '';
+  $('#af-city').value = a.city || '';
+  $('#af-state').value = a.state || '';
+  $('#af-zip').value = a.zip || '';
+  $('#af-country').value = a.country || 'United States';
+  $('#ship-view').classList.add('hidden');
+  $('#address-form').classList.remove('hidden');
+});
+$('#cancel-address')?.addEventListener('click', () => {
+  $('#address-form').classList.add('hidden');
+  $('#ship-view').classList.remove('hidden');
+});
+$('#address-form')?.addEventListener('submit', e => {
+  e.preventDefault();
+  const u = currentUser(); if(!u) return;
+  const parts = {
+    street: $('#af-street').value.trim(),
+    city: $('#af-city').value.trim(),
+    state: $('#af-state').value.trim(),
+    zip: $('#af-zip').value.trim(),
+    country: $('#af-country').value.trim() || 'United States'
+  };
+  const line = [parts.street, parts.city, [parts.state, parts.zip].filter(Boolean).join(' '), parts.country].filter(Boolean).join(', ');
+  const updated = { ...u, addressParts: parts, address: line };
+  if(!persistUser(updated, null)) return;
+  $('#address-form').classList.add('hidden');
+  $('#ship-view').classList.remove('hidden');
+  renderAccount(currentUser());
+  toast('✓ Shipping address saved');
+});
 $('#signout-acc').addEventListener('click', signOut);
 
 function renderFulfillmentStats(){

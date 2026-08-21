@@ -366,6 +366,30 @@
     return all;
   }
 
+  /* ============================================================
+     CUSTOMERS  ·  /api/customers
+     Profile records users can edit themselves from the portal.
+     ============================================================ */
+  const CUSTOMERS_KEY = 'lumiere_customers';
+  const Customers = {
+    all(){ return LS.get(CUSTOMERS_KEY, {}); },
+    get(email){ return this.all()[email] || null; },
+    async update(email, patch){
+      if(!isDemo()) return http('/customers/' + encodeURIComponent(email), { method:'PATCH', body:JSON.stringify(patch) });
+      const all = this.all();
+      const prev = all[email] || {};
+      const safe = { name:patch.name, email:patch.email || email, phone:patch.phone,
+                     address:patch.address, addressParts:patch.addressParts,
+                     updatedAt:new Date().toISOString() };
+      // If the email changed, move the record
+      if(patch.email && patch.email !== email) delete all[email];
+      all[safe.email] = { ...prev, ...safe };
+      LS.set(CUSTOMERS_KEY, all);
+      window.dispatchEvent(new CustomEvent('customers:change', { detail:{ email:safe.email } }));
+      return all[safe.email];
+    }
+  };
+
   const Ambassadors = {
     _all(){ return seedAmbassadors(); },
     _save(all){ LS.set(AMB_KEY, all); window.dispatchEvent(new CustomEvent('ambassadors:change')); },
@@ -511,7 +535,7 @@
      ============================================================ */
   window.Lumiere = window.Lumiere || {};
   Object.assign(window.Lumiere, {
-    Cart, startCheckout, Orders, Inquiries, Refunds, Newsletter, Subscriptions, Agents, Shipping, Ambassadors,
+    Cart, startCheckout, Orders, Inquiries, Refunds, Newsletter, Subscriptions, Agents, Shipping, Ambassadors, Customers,
     isDemo
   });
 })();

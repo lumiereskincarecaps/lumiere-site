@@ -124,6 +124,18 @@
 const $ = s => document.querySelector(s);
 const fmt = n => '$' + n.toFixed(2);
 
+/* Demo notices are owner-only — customers never see them */
+const ADMIN_EMAILS = ['seoprrocket@gmail.com'];
+function isOwnerViewer(){
+  try {
+    if(localStorage.getItem('lumiere_owner_device') === '1') return true;
+    const raw = sessionStorage.getItem('lumiere_session') || localStorage.getItem('lumiere_session');
+    if(raw){ const s = JSON.parse(raw); if(s && ADMIN_EMAILS.includes(s.email)) return true; }
+  } catch(e){}
+  return false;
+}
+const showDemoNotice = () => Lumiere.isDemo() && isOwnerViewer();
+
 // Map cart product names to their shop image slots (shown as thumbnails in the summary)
 const THUMB_SLOTS = {
   '3-Day Trial Pack': 'pack-3day',
@@ -153,7 +165,7 @@ function render(){
   const total = subtotal + shipping + tax;
 
   app.innerHTML = `
-    ${Lumiere.isDemo() ? '<div class="demo-banner"><strong>Demo mode.</strong> Real checkout will use Stripe — see DEPLOYMENT.md to wire it up. For now, completing checkout creates a local order in your portal.</div>' : ''}
+    ${showDemoNotice() ? '<div class="demo-banner"><strong>Demo mode.</strong> Real checkout will use Stripe — see DEPLOYMENT.md to wire it up. For now, completing checkout creates a local order in your portal.</div>' : ''}
 
     <div class="grid">
       <div>
@@ -211,7 +223,7 @@ function render(){
             </div>
           </div>
           <p style="font-size:0.88rem;line-height:1.7;color:var(--ink-soft);margin-bottom:0.8rem">Payment is processed securely by Stripe. Your card details never touch our servers.</p>
-          ${Lumiere.isDemo() ? '<p style="font-size:0.8rem;color:var(--gold-deep);font-style:italic">Demo mode: clicking "Place Order" below skips Stripe and creates a local test order.</p>' : '<div id="stripe-card-element"><!-- Stripe Elements mounts here --></div>'}
+          ${showDemoNotice() ? '<p style="font-size:0.8rem;color:var(--gold-deep);font-style:italic">Demo mode: clicking "Place Order" below skips Stripe and creates a local test order.</p>' : '<div id="stripe-card-element"><!-- Stripe Elements mounts here --></div>'}
         </div>
 
         <button class="btn" id="place-order">Place Order · ${fmt(total)}</button>
