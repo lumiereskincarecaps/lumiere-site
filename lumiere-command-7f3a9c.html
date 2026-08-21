@@ -670,15 +670,6 @@
 </nav>
 
 <!-- AUTH GATE (shown if not admin) -->
-<section class="gate hidden" id="gate">
-  <div class="gate-card">
-    <span class="eyebrow">Restricted Area</span>
-    <h2>Admin access required.</h2>
-    <p>The Admin Command Center is only available to Lumière operations team members. Sign in with an admin account to continue.</p>
-    <a href="portal.html" class="btn">Sign In to Portal</a>
-  </div>
-</section>
-
 <!-- ADMIN APP -->
 <div id="admin-app" class="hidden">
 
@@ -686,7 +677,7 @@
     <div class="container">
       <span class="eyebrow">Admin Command Center</span>
       <h1>Welcome to <em>operations.</em></h1>
-      <p class="lead">Six AI agents are working in the background. Here's what they've handled today.</p>
+      <p class="lead">Eight AI agents are working in the background. Here's what they've handled today.</p>
       <div class="tabs" role="tablist">
         <button class="tab active" data-view="overview">Overview</button>
         <button class="tab" data-view="agents">AI Agents <span class="badge-count">8</span></button>
@@ -1346,34 +1337,35 @@
 <script src="images.js"></script>
 <script>
 /* ======================================================
-   AUTH GATE — only admins can access
+   ADMIN IDENTITY
+   Access is controlled by the login gate at the top of this
+   page. This just renders who is signed in.
    ====================================================== */
 const ADMIN_EMAILS = ['seoprrocket@gmail.com'];
-const SESSION_KEY = 'lumiere_session';
 const USERS_KEY = 'lumiere_users';
 
 function loadUsers(){ try { return JSON.parse(localStorage.getItem(USERS_KEY)) || {}; } catch { return {}; } }
 
-(function authCheck(){
-  const session = localStorage.getItem(SESSION_KEY);
-  const users = loadUsers();
-  if(!session || !users[session] || !ADMIN_EMAILS.includes(session)){
-    document.getElementById('gate').classList.remove('hidden');
-    document.getElementById('admin-app').classList.add('hidden');
-    return;
+(function showAdminIdentity(){
+  const app = document.getElementById('admin-app');
+  if(app) app.classList.remove('hidden');
+  let email = ADMIN_EMAILS[0];
+  try {
+    const s = JSON.parse(sessionStorage.getItem('lumiere_admin_session') || localStorage.getItem('lumiere_admin_session') || 'null');
+    if(s && s.email) email = s.email;
+  } catch(e){}
+  const name = email.split('@')[0];
+  const area = document.getElementById('nav-account-area');
+  if(area){
+    area.innerHTML = `
+      <div style="display:flex;align-items:center;gap:0.6rem">
+        <div class="nav-account">
+          <div class="dot">${name.charAt(0).toUpperCase()}</div>
+          <span>${name}</span>
+        </div>
+        <button class="signout-btn" onclick="adminSignOut()">Sign Out</button>
+      </div>`;
   }
-  const user = users[session];
-  document.getElementById('admin-app').classList.remove('hidden');
-  document.getElementById('gate').classList.add('hidden');
-  document.getElementById('nav-account-area').innerHTML = `
-    <div style="display:flex;align-items:center;gap:0.6rem">
-      <div class="nav-account">
-        <div class="dot">${user.name.charAt(0).toUpperCase()}</div>
-        <span>${user.name}</span>
-      </div>
-      <button class="signout-btn" onclick="localStorage.removeItem('${SESSION_KEY}'); window.location.href='portal.html'">Sign Out</button>
-    </div>
-  `;
 })();
 
 /* ======================================================
