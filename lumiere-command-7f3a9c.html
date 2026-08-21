@@ -1305,6 +1305,17 @@
             <button class="btn btn-sm btn-ghost" id="import-settings">↑ Restore From Backup</button>
             <input type="file" id="import-file" accept="application/json" style="display:none">
           </div>
+
+          <div style="margin-top:1.5rem;padding-top:1.5rem;border-top:1px solid var(--line)">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap">
+              <div>
+                <div style="font-weight:500;font-size:0.95rem">Saved Form Entries</div>
+                <div style="font-size:0.82rem;color:var(--ink-soft);margin-top:0.2rem" id="fm-count">—</div>
+              </div>
+              <button class="btn btn-sm btn-ghost" id="clear-field-memory" style="border-color:var(--red);color:var(--red)">Clear Saved Entries</button>
+            </div>
+            <p style="font-size:0.78rem;color:var(--ink-soft);margin-top:0.7rem;font-style:italic">Text fields remember what you typed so they can suggest it next time. Passwords, tokens and card details are never saved.</p>
+          </div>
         </div>
 
         <!-- Deploy History -->
@@ -3985,6 +3996,31 @@ function openServiceConnect(k){
 function storageWorks(){
   try { localStorage.setItem('__t','1'); localStorage.removeItem('__t'); return true; } catch { return false; }
 }
+/* Saved form entries (field memory) */
+function renderFieldMemoryCount(){
+  const el = document.getElementById('fm-count');
+  if(!el) return;
+  let fields = 0, values = 0;
+  try {
+    const mem = (window.LumiereFieldMemory && LumiereFieldMemory.all()) || {};
+    fields = Object.keys(mem).length;
+    values = Object.values(mem).reduce((n,a) => n + (a?a.length:0), 0);
+  } catch(e){}
+  el.textContent = fields
+    ? `${values} entr${values===1?'y':'ies'} remembered across ${fields} field${fields===1?'':'s'}`
+    : 'Nothing saved yet';
+}
+document.getElementById('clear-field-memory')?.addEventListener('click', () => {
+  if(!confirm('Clear every saved form entry on this device?\n\nFields will stop suggesting past values until you type them again.')) return;
+  try { window.LumiereFieldMemory ? LumiereFieldMemory.clear() : localStorage.removeItem('lumiere_field_memory'); } catch(e){}
+  renderFieldMemoryCount();
+  toast('✓ Saved form entries cleared');
+});
+document.addEventListener('click', e => {
+  if(e.target.closest('[data-view="deploy"]')) setTimeout(renderFieldMemoryCount, 60);
+});
+document.addEventListener('DOMContentLoaded', () => setTimeout(renderFieldMemoryCount, 300));
+
 document.getElementById('export-settings')?.addEventListener('click', () => {
   const dump = {};
   ['lumiere_deploy_state','lumiere_vesper','lumiere_agent_prefs','lumiere_subs','lumiere_ambassadors','lumiere_inquiries','lumiere_refunds']
