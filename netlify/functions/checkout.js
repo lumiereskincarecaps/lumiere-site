@@ -42,7 +42,15 @@ exports.handler = async (event) => {
       keyPrefix: key ? key.slice(0, 8) + '...' : null,
       keyLooksValid: /^sk_(test|live)_/.test(key),
       stripeVarsPresent: Object.keys(process.env).filter(k => /stripe/i.test(k)).sort(),
-      nodeVersion: process.version
+      nodeVersion: process.version,
+      // Which Netlify site + which build is actually serving this domain.
+      // If SITE_NAME is not the site you edited, that is the whole problem.
+      siteName: process.env.SITE_NAME || null,
+      siteId: process.env.SITE_ID ? process.env.SITE_ID.slice(0, 8) + '...' : null,
+      context: process.env.CONTEXT || null,
+      branch: process.env.BRANCH || null,
+      commitRef: process.env.COMMIT_REF ? process.env.COMMIT_REF.slice(0, 7) : null,
+      builtAt: process.env.BUILD_ID ? process.env.BUILD_ID.slice(0, 10) : null
     });
   }
   if (event.httpMethod !== 'POST') {
