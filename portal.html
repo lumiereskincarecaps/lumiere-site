@@ -942,6 +942,7 @@
 <div class="toast" id="toast">Updated.</div>
 
 <script src="config.js"></script>
+<script src="auth.js"></script>
 <script src="analytics.js"></script>
 <script src="api.js"></script>
 <script src="images.js"></script>
@@ -1101,6 +1102,21 @@ $('#form-login').addEventListener('submit', async e => {
   const password = $('#login-password').value;
   const remember = $('#remember-me')?.checked;
   if(!email || !password) return showAuthError('Please enter both email and password.');
+  // Server-side auth when configured (Supabase); otherwise local accounts
+  if(window.LumiereAuth && LumiereAuth.isServerSide){
+    const res = await LumiereAuth.signIn(email, password, remember);
+    if(!res.ok) return showAuthError(res.error || 'Sign in failed.');
+    if(remember){ try { localStorage.setItem('lumiere_remember_email', email); } catch(err){} }
+    const su = await LumiereAuth.currentUser();
+    const users = loadUsers();
+    users[email] = { ...(users[email]||{}), email, name: su.name, phone: su.phone,
+                     address: su.address, addressParts: su.addressParts,
+                     createdAt: su.createdAt || new Date().toISOString().slice(0,10) };
+    saveUsers(users);
+    setSession(email, remember);
+    return enterPortal(email);
+  }
+
   const users = loadUsers();
   const user = users[email];
   if(!user) return showAuthError('No account found with that email. Try creating one?');
@@ -1129,6 +1145,25 @@ $('#form-signup').addEventListener('submit', async e => {
   if(password.length < 8) return showAuthError('Password must be at least 8 characters.');
   if(password !== confirm) return showAuthError('Passwords don\'t match.');
   if(!/^\S+@\S+\.\S+$/.test(email)) return showAuthError('Please enter a valid email address.');
+  if(window.LumiereAuth && LumiereAuth.isServerSide){
+    const res = await LumiereAuth.signUp(email, password, name);
+    if(!res.ok) return showAuthError(res.error || 'Could not create the account.');
+    if(res.needsVerification){
+      showAuthError('');
+      toast('Account created — check ' + email + ' for a confirmation link.');
+      $$('.auth-tab').forEach(x => x.classList.toggle('active', x.dataset.authTab === 'login'));
+      $$('.auth-form').forEach(f => f.classList.toggle('active', f.id === 'form-login'));
+      $('#login-email').value = email;
+      return;
+    }
+    const usersS = loadUsers();
+    usersS[email] = { email, name, address:'', createdAt: new Date().toISOString().slice(0,10) };
+    saveUsers(usersS);
+    setSession(email, true);
+    toast('Account created — welcome to Lumière.');
+    return enterPortal(email);
+  }
+
   const users = loadUsers();
   if(users[email]) return showAuthError('An account already exists with this email. Try signing in?');
   users[email] = { email, name, password: await hashPassword(password), address:'', createdAt: new Date().toISOString().slice(0,10) };
@@ -1192,13 +1227,29 @@ if(pwInput){
   } catch(e){}
 })();
 
-document.getElementById('forgot-link')?.addEventListener('click', e => {
+document.getElementById('forgot-link')?.addEventListener('click', async e => {
   e.preventDefault();
   const email = (document.getElementById('login-email').value || '').trim();
-  toast(email
-    ? 'If an account exists for ' + email + ', a reset link is on its way.'
-    : 'Enter your email above, then click Forgot password.');
+  if(!email) return toast('Enter your email above, then click Forgot password.');
+  if(window.LumiereAuth && LumiereAuth.isServerSide){
+    await LumiereAuth.resetPassword(email);
+  }
+  toast('If an account exists for ' + email + ', a reset link is on its way.');
 });
+
+/* Restore a server-side session on page load (survives refresh) */
+(async function(){
+  if(window.LumiereAuth && LumiereAuth.isServerSide){
+    const su = await LumiereAuth.currentUser();
+    if(su){
+      const users = loadUsers();
+      users[su.email] = { ...(users[su.email]||{}), ...su };
+      saveUsers(users);
+      setSession(su.email, true);
+      enterPortal(su.email);
+    }
+  }
+})();
 
 function enterPortal(email){
   const users = loadUsers();
@@ -1267,6 +1318,7 @@ function enterPortal(email){
 }
 
 function signOut(){
+  if(window.LumiereAuth && LumiereAuth.isServerSide){ LumiereAuth.signOut(); }
   clearSession();
   toast('Signed out.');
   showAuth();
@@ -1737,6 +1789,10 @@ function persistUser(updated, newEmail){
   saveUsers(users);
   // Mirror the change to the backend layer so order/CRM records stay in sync
   try { Lumiere?.Customers?.update?.(updated.email, updated); } catch(e){}
+  if(window.LumiereAuth && LumiereAuth.isServerSide){
+    LumiereAuth.updateProfile({ full_name: updated.name, phone: updated.phone,
+                                address: updated.address, addressParts: updated.addressParts });
+  }
   return true;
 }
 
@@ -1766,7 +1822,7 @@ $('#profile-form')?.addEventListener('submit', e => {
   toast('✓ Your details were saved');
 });
 
-$('#change-password')?.addEventListener('click', () => {
+$('#change-password')?.addEventListener('click', async () => {
   const u = currentUser(); if(!u) return;
   const current = prompt('Enter your current password:');
   if(current === null) return;
@@ -1774,7 +1830,12 @@ $('#change-password')?.addEventListener('click', () => {
   const next = prompt('New password (min 8 characters):');
   if(next === null) return;
   if(next.length < 8){ toast('Password must be at least 8 characters'); return; }
-  persistUser({ ...u, password: hash(next) }, null);
+  if(window.LumiereAuth && LumiereAuth.isServerSide){
+    const r = await LumiereAuth.changePassword(next);
+    if(!r.ok) return toast('⚠ ' + (r.error || 'Could not update password'));
+  } else {
+    persistUser({ ...u, password: await hashPassword(next) }, null);
+  }
   toast('✓ Password updated');
 });
 

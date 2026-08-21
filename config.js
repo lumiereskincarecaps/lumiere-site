@@ -89,8 +89,16 @@ window.LUMIERE_CONFIG = {
   // For production, swap to Auth0 / Clerk / Supabase / custom JWT.
   // The localStorage demo auth is in portal.html and is for development only.
   auth: {
-    provider: 'demo',                             // 'demo' | 'auth0' | 'clerk' | 'supabase' | 'custom'
-    sessionTimeoutMin: 60 * 24 * 7                // 7 days
+    provider: 'demo',                             // 'demo' | 'supabase' | 'clerk' | 'auth0' | 'custom'
+    sessionTimeoutMin: 60 * 24 * 7,               // 7 days
+
+    /* --- Supabase Auth (real server-side accounts) ---
+       Set provider:'supabase' and fill these two values, and the portal
+       automatically switches from browser-only accounts to real ones:
+       hashed passwords on a server, email verification, and password
+       resets by email. Both values are safe to expose publicly. */
+    supabaseUrl: '',                              // e.g. https://abcdefgh.supabase.co
+    supabaseAnonKey: ''                           // the "anon public" key from Supabase → Settings → API
   },
 
   /* ---------- AI AGENTS · ANTHROPIC ---------- */
