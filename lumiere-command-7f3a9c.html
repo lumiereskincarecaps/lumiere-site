@@ -535,11 +535,17 @@
       <label style="display:block;font-size:0.65rem;letter-spacing:0.16em;text-transform:uppercase;color:#3a3a38;font-weight:600;margin-bottom:0.35rem">Email</label>
       <input type="email" id="gate-email" autocomplete="username" required style="width:100%;padding:0.85rem 1rem;border-radius:8px;border:1px solid rgba(26,26,26,0.12);background:#f3ede2;font-family:'Inter',sans-serif;font-size:0.95rem;margin-bottom:1rem">
       <label style="display:block;font-size:0.65rem;letter-spacing:0.16em;text-transform:uppercase;color:#3a3a38;font-weight:600;margin-bottom:0.35rem">Password</label>
-      <input type="password" id="gate-pass" autocomplete="current-password" required style="width:100%;padding:0.85rem 1rem;border-radius:8px;border:1px solid rgba(26,26,26,0.12);background:#f3ede2;font-family:'Inter',sans-serif;font-size:0.95rem;margin-bottom:1.4rem">
+      <div style="position:relative;margin-bottom:1rem">
+        <input type="password" id="gate-pass" autocomplete="current-password" required style="width:100%;padding:0.85rem 4.2rem 0.85rem 1rem;border-radius:8px;border:1px solid rgba(26,26,26,0.12);background:#f3ede2;font-family:'Inter',sans-serif;font-size:0.95rem">
+        <button type="button" id="gate-pw-toggle" style="position:absolute;right:0.6rem;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-family:'Inter',sans-serif;font-size:0.66rem;letter-spacing:0.14em;text-transform:uppercase;font-weight:700;color:#8b6f3f;padding:0.4rem 0.5rem;border-radius:6px">Show</button>
+      </div>
+      <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.83rem;color:#3a3a38;cursor:pointer;margin-bottom:1.4rem;font-weight:300">
+        <input type="checkbox" id="gate-remember" style="accent-color:#8b6f3f;width:16px;height:16px;cursor:pointer"> Keep me signed in on this device for 30 days
+      </label>
       <button type="submit" style="width:100%;padding:1rem;border-radius:50px;border:none;cursor:pointer;background:#1a1a1a;color:#faf7f2;font-size:0.75rem;letter-spacing:0.18em;text-transform:uppercase;font-weight:700;font-family:'Inter',sans-serif">Sign In</button>
       <div id="gate-error" style="display:none;margin-top:1rem;padding:0.7rem 1rem;border-radius:8px;background:#fdeceb;color:#b94e3e;font-size:0.82rem;text-align:center"></div>
     </form>
-    <p style="font-size:0.72rem;color:#3a3a38;opacity:0.7;margin-top:1.5rem;text-align:center;font-style:italic">Authorized personnel only. Sessions expire after 8 hours.</p>
+    <p style="font-size:0.72rem;color:#3a3a38;opacity:0.7;margin-top:1.5rem;text-align:center;font-style:italic">Authorized personnel only. Sessions expire after 8 hours, or 30 days if you choose to stay signed in.</p>
   </div>
 </div>
 
@@ -580,9 +586,30 @@
   // Already signed in and still valid?
   try {
     const s = JSON.parse(sessionStorage.getItem(SESSION_KEY) || localStorage.getItem(SESSION_KEY) || 'null');
-    if(s && s.token === ADMIN_HASH.slice(0,24) && (Date.now() - s.at) < MAX_AGE){
+    const maxAge = (s && s.remember) ? 30*24*60*60*1000 : MAX_AGE;
+    if(s && s.token === ADMIN_HASH.slice(0,24) && (Date.now() - s.at) < maxAge){
       unlock();
       return;
+    }
+  } catch(e){}
+
+  // Password reveal toggle
+  document.getElementById('gate-pw-toggle').addEventListener('click', () => {
+    const inp = document.getElementById('gate-pass');
+    const btn = document.getElementById('gate-pw-toggle');
+    const showing = inp.type === 'text';
+    inp.type = showing ? 'password' : 'text';
+    btn.textContent = showing ? 'Show' : 'Hide';
+    inp.focus();
+  });
+
+  // Pre-fill remembered email
+  try {
+    const remembered = localStorage.getItem('lumiere_admin_email');
+    if(remembered){
+      document.getElementById('gate-email').value = remembered;
+      document.getElementById('gate-remember').checked = true;
+      setTimeout(() => document.getElementById('gate-pass').focus(), 120);
     }
   } catch(e){}
 
@@ -601,8 +628,12 @@
     const hash  = await sha256(SALT + pass);
     if(email === ADMIN_EMAIL && hash === ADMIN_HASH){
       setLock({ tries:0, until:0 });
-      const sess = JSON.stringify({ token: ADMIN_HASH.slice(0,24), at: Date.now(), email });
-      try { sessionStorage.setItem(SESSION_KEY, sess); localStorage.setItem(SESSION_KEY, sess); } catch(e){}
+      const remember = document.getElementById('gate-remember').checked;
+      const sess = JSON.stringify({ token: ADMIN_HASH.slice(0,24), at: Date.now(), email, remember });
+      try {
+        if(remember){ localStorage.setItem(SESSION_KEY, sess); localStorage.setItem('lumiere_admin_email', email); sessionStorage.removeItem(SESSION_KEY); }
+        else { sessionStorage.setItem(SESSION_KEY, sess); localStorage.removeItem(SESSION_KEY); localStorage.removeItem('lumiere_admin_email'); }
+      } catch(e){}
       unlock();
     } else {
       const tries = (lock.tries || 0) + 1;
@@ -619,7 +650,7 @@
 
   // Expose sign-out for the dashboard
   window.adminSignOut = function(){
-    try { sessionStorage.removeItem(SESSION_KEY); localStorage.removeItem(SESSION_KEY); } catch(e){}
+    try { sessionStorage.removeItem(SESSION_KEY); localStorage.removeItem(SESSION_KEY); localStorage.removeItem('lumiere_admin_email'); } catch(e){}
     location.reload();
   };
 })();

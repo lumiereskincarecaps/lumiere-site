@@ -286,6 +286,19 @@
   /* PROFILE / ACCOUNT */
   .profile-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-bottom:3rem}
   @media(max-width:768px){.profile-grid{grid-template-columns:1fr}}
+  /* Password reveal + remember me */
+  .pw-wrap{position:relative}
+  .pw-wrap input{padding-right:4.2rem !important;width:100%}
+  .pw-toggle{position:absolute;right:0.6rem;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-family:'Inter',sans-serif;font-size:0.66rem;letter-spacing:0.14em;text-transform:uppercase;font-weight:700;color:var(--gold-deep);padding:0.4rem 0.5rem;border-radius:6px}
+  .pw-toggle:hover{background:rgba(184,147,90,0.12)}
+  .remember-row{display:flex;justify-content:space-between;align-items:center;gap:1rem;margin:-0.4rem 0 1.2rem;flex-wrap:wrap}
+  .remember{display:flex;align-items:center;gap:0.5rem;font-size:0.85rem;color:var(--ink-soft);cursor:pointer;font-weight:300}
+  .remember input{accent-color:var(--gold-deep);width:16px;height:16px;cursor:pointer}
+  .remember-row a{font-size:0.8rem;color:var(--gold-deep);text-decoration:underline}
+  .pw-meter{height:4px;background:var(--cream);border-radius:50px;margin-top:0.5rem;overflow:hidden}
+  .pw-bar{height:100%;width:0;border-radius:50px;transition:width .3s,background .3s}
+  .pw-hint{font-size:0.74rem;color:var(--ink-soft);margin-top:0.35rem}
+
   /* Inline edit forms in the account view */
   .profile-card .field{margin-bottom:0.9rem}
   .profile-card .field label{display:block;font-size:0.65rem;text-transform:uppercase;letter-spacing:0.16em;color:var(--ink-soft);font-weight:600;margin-bottom:0.35rem}
@@ -565,7 +578,14 @@
       </div>
       <div class="form-field">
         <label for="login-password">Password</label>
-        <input type="password" id="login-password" required placeholder="Your password" autocomplete="current-password">
+        <div class="pw-wrap">
+          <input type="password" id="login-password" required placeholder="Your password" autocomplete="current-password">
+          <button type="button" class="pw-toggle" data-pw-for="login-password" aria-label="Show password">Show</button>
+        </div>
+      </div>
+      <div class="remember-row">
+        <label class="remember"><input type="checkbox" id="remember-me"> Keep me signed in</label>
+        <a href="#" id="forgot-link">Forgot password?</a>
       </div>
       <button type="submit" class="auth-submit">Sign In</button>
       <div class="auth-helper">
@@ -585,11 +605,19 @@
       </div>
       <div class="form-field">
         <label for="signup-password">Password</label>
-        <input type="password" id="signup-password" required placeholder="At least 6 characters" autocomplete="new-password">
+        <div class="pw-wrap">
+          <input type="password" id="signup-password" required placeholder="At least 8 characters" autocomplete="new-password">
+          <button type="button" class="pw-toggle" data-pw-for="signup-password" aria-label="Show password">Show</button>
+        </div>
+        <div class="pw-meter"><div class="pw-bar" id="pw-bar"></div></div>
+        <div class="pw-hint" id="pw-hint">Use at least 8 characters with a mix of letters and numbers.</div>
       </div>
       <div class="form-field">
         <label for="signup-confirm">Confirm Password</label>
-        <input type="password" id="signup-confirm" required placeholder="Re-enter password" autocomplete="new-password">
+        <div class="pw-wrap">
+          <input type="password" id="signup-confirm" required placeholder="Re-enter password" autocomplete="new-password">
+          <button type="button" class="pw-toggle" data-pw-for="signup-confirm" aria-label="Show password">Show</button>
+        </div>
       </div>
       <button type="submit" class="auth-submit">Create Account</button>
       <div class="auth-helper">
@@ -944,10 +972,43 @@ const SESSION_KEY = 'lumiere_session';
 function loadUsers(){ try { return JSON.parse(localStorage.getItem(USERS_KEY)) || {}; } catch { return {}; } }
 function saveUsers(u){ localStorage.setItem(USERS_KEY, JSON.stringify(u)); }
 // Demo only — base64 obfuscation. NOT secure. Use bcrypt+backend in production.
-function hash(p){ return btoa(unescape(encodeURIComponent('lum:' + p))); }
-function getSession(){ return localStorage.getItem(SESSION_KEY); }
-function setSession(email){ localStorage.setItem(SESSION_KEY, email); }
-function clearSession(){ localStorage.removeItem(SESSION_KEY); }
+/* Legacy demo hash — kept only so existing accounts can still sign in and be upgraded */
+function legacyHash(p){ return btoa(unescape(encodeURIComponent('lum:' + p))); }
+
+/* Real password hashing: PBKDF2-SHA256, 150k iterations, per-user random salt.
+   Format: pbkdf2$<iterations>$<saltB64>$<hashB64> */
+const PBKDF2_ITER = 150000;
+function bufToB64(buf){ return btoa(String.fromCharCode(...new Uint8Array(buf))); }
+function b64ToBuf(b64){ return Uint8Array.from(atob(b64), c => c.charCodeAt(0)); }
+async function hashPassword(password, saltBytes){
+  const salt = saltBytes || crypto.getRandomValues(new Uint8Array(16));
+  const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(password), 'PBKDF2', false, ['deriveBits']);
+  const bits = await crypto.subtle.deriveBits({ name:'PBKDF2', salt, iterations:PBKDF2_ITER, hash:'SHA-256' }, key, 256);
+  return `pbkdf2$${PBKDF2_ITER}$${bufToB64(salt)}$${bufToB64(bits)}`;
+}
+async function verifyPassword(password, stored){
+  if(!stored) return false;
+  if(stored.startsWith('pbkdf2$')){
+    const [,iter,saltB64,hashB64] = stored.split('$');
+    const salt = b64ToBuf(saltB64);
+    const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(password), 'PBKDF2', false, ['deriveBits']);
+    const bits = await crypto.subtle.deriveBits({ name:'PBKDF2', salt, iterations:parseInt(iter), hash:'SHA-256' }, key, 256);
+    return bufToB64(bits) === hashB64;
+  }
+  return stored === legacyHash(password);   // old account — will be upgraded on next sign-in
+}
+/* Kept for code that still calls hash() synchronously */
+function hash(p){ return legacyHash(p); }
+function getSession(){ return sessionStorage.getItem(SESSION_KEY) || localStorage.getItem(SESSION_KEY); }
+function setSession(email, remember){
+  try {
+    if(remember){ localStorage.setItem(SESSION_KEY, email); sessionStorage.removeItem(SESSION_KEY); }
+    else { sessionStorage.setItem(SESSION_KEY, email); localStorage.removeItem(SESSION_KEY); }
+  } catch(e){ localStorage.setItem(SESSION_KEY, email); }
+}
+function clearSession(){
+  try { localStorage.removeItem(SESSION_KEY); sessionStorage.removeItem(SESSION_KEY); } catch(e){}
+}
 
 /* Seed demo users on first load */
 (function seedUsers(){
@@ -1033,22 +1094,31 @@ $$('[data-demo]').forEach(b => b.addEventListener('click', () => {
 }));
 
 /* LOGIN */
-$('#form-login').addEventListener('submit', e => {
+$('#form-login').addEventListener('submit', async e => {
   e.preventDefault();
   clearAuthError();
   const email = $('#login-email').value.trim().toLowerCase();
   const password = $('#login-password').value;
+  const remember = $('#remember-me')?.checked;
   if(!email || !password) return showAuthError('Please enter both email and password.');
   const users = loadUsers();
   const user = users[email];
   if(!user) return showAuthError('No account found with that email. Try creating one?');
-  if(user.password !== hash(password)) return showAuthError('Incorrect password. Please try again.');
-  setSession(email);
+  const ok = await verifyPassword(password, user.password);
+  if(!ok) return showAuthError('Incorrect password. Please try again.');
+  // Silently upgrade old demo-hashed passwords to PBKDF2
+  if(!String(user.password).startsWith('pbkdf2$')){
+    user.password = await hashPassword(password);
+    users[email] = user; saveUsers(users);
+  }
+  setSession(email, remember);
+  if(remember){ try { localStorage.setItem('lumiere_remember_email', email); } catch(err){} }
+  else { try { localStorage.removeItem('lumiere_remember_email'); } catch(err){} }
   enterPortal(email);
 });
 
 /* SIGNUP */
-$('#form-signup').addEventListener('submit', e => {
+$('#form-signup').addEventListener('submit', async e => {
   e.preventDefault();
   clearAuthError();
   const name = $('#signup-name').value.trim();
@@ -1056,16 +1126,78 @@ $('#form-signup').addEventListener('submit', e => {
   const password = $('#signup-password').value;
   const confirm = $('#signup-confirm').value;
   if(!name || !email || !password) return showAuthError('Please fill in all fields.');
-  if(password.length < 6) return showAuthError('Password must be at least 6 characters.');
+  if(password.length < 8) return showAuthError('Password must be at least 8 characters.');
   if(password !== confirm) return showAuthError('Passwords don\'t match.');
   if(!/^\S+@\S+\.\S+$/.test(email)) return showAuthError('Please enter a valid email address.');
   const users = loadUsers();
   if(users[email]) return showAuthError('An account already exists with this email. Try signing in?');
-  users[email] = { email, name, password: hash(password), address:'', createdAt: new Date().toISOString().slice(0,10) };
+  users[email] = { email, name, password: await hashPassword(password), address:'', createdAt: new Date().toISOString().slice(0,10) };
   saveUsers(users);
-  setSession(email);
+  setSession(email, true);
   toast('Account created — welcome to Lumière.');
   enterPortal(email);
+});
+
+/* ===== Password reveal toggles, strength meter, remembered email ===== */
+document.querySelectorAll('.pw-toggle').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const input = document.getElementById(btn.dataset.pwFor);
+    if(!input) return;
+    const showing = input.type === 'text';
+    input.type = showing ? 'password' : 'text';
+    btn.textContent = showing ? 'Show' : 'Hide';
+    btn.setAttribute('aria-label', showing ? 'Show password' : 'Hide password');
+    input.focus();
+  });
+});
+
+const pwInput = document.getElementById('signup-password');
+if(pwInput){
+  pwInput.addEventListener('input', () => {
+    const v = pwInput.value;
+    let score = 0;
+    if(v.length >= 8) score++;
+    if(v.length >= 12) score++;
+    if(/[A-Z]/.test(v) && /[a-z]/.test(v)) score++;
+    if(/\d/.test(v)) score++;
+    if(/[^A-Za-z0-9]/.test(v)) score++;
+    const levels = [
+      { w:'0%',   c:'transparent',   t:'Use at least 8 characters with a mix of letters and numbers.' },
+      { w:'25%',  c:'#b94e3e',       t:'Weak — add length and a number.' },
+      { w:'45%',  c:'#c08428',       t:'Fair — try mixing upper and lower case.' },
+      { w:'70%',  c:'#c08428',       t:'Good — a symbol would make it stronger.' },
+      { w:'88%',  c:'#5d8a4a',       t:'Strong password.' },
+      { w:'100%', c:'#5d8a4a',       t:'Excellent — very strong password.' }
+    ];
+    const l = levels[Math.min(score, 5)];
+    const bar = document.getElementById('pw-bar');
+    const hint = document.getElementById('pw-hint');
+    if(bar){ bar.style.width = v ? l.w : '0%'; bar.style.background = l.c; }
+    if(hint){ hint.textContent = l.t; hint.style.color = v && score >= 4 ? '#5d8a4a' : 'var(--ink-soft)'; }
+  });
+}
+
+/* Pre-fill the remembered email and tick the box */
+(function(){
+  try {
+    const remembered = localStorage.getItem('lumiere_remember_email');
+    if(remembered){
+      const em = document.getElementById('login-email');
+      const rm = document.getElementById('remember-me');
+      if(em && !em.value) em.value = remembered;
+      if(rm) rm.checked = true;
+      const pw = document.getElementById('login-password');
+      if(pw) setTimeout(() => pw.focus(), 100);
+    }
+  } catch(e){}
+})();
+
+document.getElementById('forgot-link')?.addEventListener('click', e => {
+  e.preventDefault();
+  const email = (document.getElementById('login-email').value || '').trim();
+  toast(email
+    ? 'If an account exists for ' + email + ', a reset link is on its way.'
+    : 'Enter your email above, then click Forgot password.');
 });
 
 function enterPortal(email){
