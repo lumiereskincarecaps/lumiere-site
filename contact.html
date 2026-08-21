@@ -231,6 +231,27 @@
     transition:transform .5s cubic-bezier(.2,.9,.3,1.4);z-index:200;
   }
   .toast.show{transform:translateX(-50%) translateY(0)}
+
+  /* CONTACT CARD / QR */
+  .contact-card-section{background:var(--paper);padding:7rem 0;border-top:1px solid var(--line)}
+  .cc-grid{display:grid;grid-template-columns:1fr 1.05fr;gap:4rem;align-items:center;max-width:1000px;margin:0 auto}
+  .cc-copy h2{margin-bottom:1rem}
+  .cc-copy p{margin-bottom:1.75rem;max-width:42ch}
+  .cc-list{list-style:none;padding:0;margin:0 0 2rem;border-top:1px solid var(--line)}
+  .cc-list li{padding:0.85rem 0;border-bottom:1px solid var(--line);font-size:0.92rem;color:var(--ink-soft);display:flex;gap:0.75rem;flex-wrap:wrap}
+  .cc-list li strong{color:var(--ink);font-weight:500;letter-spacing:0.04em;text-transform:uppercase;font-size:0.72rem;min-width:9.5rem;padding-top:0.15rem}
+  .cc-save{display:inline-block;font-size:0.78rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--ink);border-bottom:1px solid var(--champagne);padding-bottom:0.35rem;transition:all .3s}
+  .cc-save:hover{color:var(--gold-deep);border-color:var(--gold-deep)}
+  .cc-visual{margin:0;border-radius:14px;overflow:hidden;background:var(--cream);box-shadow:0 18px 50px rgba(26,26,26,0.10);border:1px solid var(--line)}
+  .cc-visual img{display:block;width:100%;height:auto}
+  @media(max-width:860px){
+    .contact-card-section{padding:4.5rem 0}
+    .cc-grid{grid-template-columns:1fr;gap:2.5rem}
+    .cc-copy{text-align:center}
+    .cc-copy p{margin-left:auto;margin-right:auto}
+    .cc-list li{justify-content:center;text-align:center}
+    .cc-list li strong{min-width:0;width:100%}
+  }
 </style>
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" type="image/png" href="img/lumiere-skincare-icon.png">
@@ -399,6 +420,28 @@
         <a href="#" class="link">Subscribe →</a>
       </div>
 
+    </div>
+  </div>
+</section>
+
+<!-- CONTACT CARD / QR -->
+<section class="contact-card-section">
+  <div class="container">
+    <div class="cc-grid">
+      <div class="cc-copy">
+        <span class="eyebrow">One Scan, Everything</span>
+        <h2>Keep us in your pocket.</h2>
+        <p>Every way to reach Lumi&egrave;re on a single card &mdash; our shop, our socials, and where we&rsquo;re based. Point your camera at the code and it all comes with you.</p>
+        <ul class="cc-list">
+          <li><strong>Shop</strong> lumiereskincarecaps.com</li>
+          <li><strong>Instagram &amp; TikTok</strong> @lumiereskincarecaps</li>
+          <li><strong>Based in</strong> Maryland, USA</li>
+        </ul>
+        <a href="img/lumiere-contact-card-qr.jpg" download="lumiere-skincare-contact-card.jpg" class="cc-save">Save the card &darr;</a>
+      </div>
+      <figure class="cc-visual" data-slot="contact-card" data-slot-alt="Lumi&egrave;re Skin Care contact card with QR code linking to lumiereskincarecaps.com, Facebook, Instagram, TikTok and Amazon" data-slot-fit="contain">
+        <img src="img/lumiere-contact-card-qr.jpg" alt="Lumi&egrave;re Skin Care contact card with QR code linking to lumiereskincarecaps.com, Facebook, Instagram, TikTok and Amazon" loading="lazy">
+      </figure>
     </div>
   </div>
 </section>

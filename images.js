@@ -58,6 +58,7 @@
     ],
     'Contact / Support': [
       { id:'contact-hero',       label:'Contact Page Hero',            desc:'Optional hero image on the contact page.', rec:'1920×600' },
+      { id:'contact-card',       label:'Contact Card / QR',            desc:'Shareable card with QR code — Contact page, "Keep us in your pocket".', rec:'1536×1024' },
       { id:'shipping-hero',      label:'Shipping Page Hero',           desc:'Optional hero image on shipping page.', rec:'1920×600' },
       { id:'returns-hero',       label:'Returns Page Hero',            desc:'Optional hero image on returns page.', rec:'1920×600' },
     ],
