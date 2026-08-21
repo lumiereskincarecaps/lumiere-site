@@ -245,10 +245,27 @@
   async function loadManifest(){
     if(MANIFEST !== null) return MANIFEST;
     try {
-      const r = await fetch('img/manifest.json', { cache:'no-cache' });
+      // Cache-bust hard: a stale manifest lets old browser-only uploads win,
+      // which makes one device disagree with every other device.
+      const r = await fetch('img/manifest.json?v=' + Date.now(), { cache:'reload' });
       MANIFEST = r.ok ? await r.json() : {};
-    } catch(e){ MANIFEST = {}; }
+    } catch(e){
+      try { const r2 = await fetch('img/manifest.json', { cache:'no-cache' }); MANIFEST = r2.ok ? await r2.json() : {}; }
+      catch(e2){ MANIFEST = {}; }
+    }
     return MANIFEST;
+  }
+
+  /* Once a slot is published as a real file, drop the browser-only copy.
+     Keeps this device showing exactly what everyone else sees. */
+  async function purgeSuperseded(man){
+    if(!man || !Object.keys(man).length) return;
+    try {
+      const local = await listImages();
+      for(const img of local){
+        if(man[img.id]){ try { await deleteImage(img.id); } catch(e){} }
+      }
+    } catch(e){}
   }
 
   /* ---------- IMAGE SEO METADATA ---------- */
@@ -269,6 +286,7 @@
     // Published files take priority so every visitor sees them
     const man = await loadManifest();
     Object.keys(man || {}).forEach(id => { map[id] = man[id]; });
+    purgeSuperseded(man);   // fire-and-forget; published files are the source of truth
     slots.forEach(el => {
       const id = el.dataset.slot;
       const url = map[id];
