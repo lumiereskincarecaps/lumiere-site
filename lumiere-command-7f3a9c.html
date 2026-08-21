@@ -981,6 +981,8 @@
           <div id="jr-calendar"></div>
         </div>
 
+        <div class="card" id="gh-card" style="margin-bottom:1.5rem"></div>
+
         <div class="grid-2">
           <div class="card">
             <div class="card-head"><h3>Topic Queue</h3><span class="meta" id="jr-source-meta">Ranked by search demand &amp; fit</span></div>
@@ -2416,11 +2418,14 @@ function renderJournal(){
           <div style="font-weight:500;color:var(--ink)">${c.topic}</div>
           <div style="font-size:0.74rem;color:var(--ink-soft);font-family:'JetBrains Mono',monospace">${c.kw}</div>
         </div>
-        <div><span class="audit-status ${c.status==='drafted'?'ok':'placeholder'}">${c.status==='drafted'?'✓ Drafted':'○ Planned'}</span></div>
+        <div><span class="audit-status ${c.status==='published'?'ok':c.status==='drafted'?'placeholder':'placeholder'}">${c.status==='published'?'● Published':c.status==='drafted'?'✓ Drafted':'○ Planned'}</span></div>
         <div style="display:flex;gap:0.4rem">
-          ${c.status==='drafted'
-            ? `<button class="btn btn-sm" data-jr-download="${i}">Download</button>
-               <button class="btn btn-sm btn-ghost" data-jr-preview="${i}">Preview</button>`
+          ${c.status==='published'
+            ? `<a class="btn btn-sm btn-ghost" href="https://lumiereskincarecaps.com/${c.url||''}" target="_blank">View Live</a>`
+            : c.status==='drafted'
+            ? `<button class="btn btn-sm btn-success" data-jr-publish="${i}">Publish</button>
+               <button class="btn btn-sm btn-ghost" data-jr-preview="${i}">Preview</button>
+               <button class="btn btn-sm btn-ghost" data-jr-download="${i}">Download</button>`
             : `<button class="btn btn-sm" data-jr-draft="${i}">Draft</button>`}
           <button class="btn btn-sm btn-ghost" data-jr-swap="${i}">Swap</button>
         </div>
@@ -2456,6 +2461,8 @@ function renderJournal(){
   document.querySelectorAll('[data-jr-download]').forEach(b => b.addEventListener('click', () => downloadArticle(parseInt(b.dataset.jrDownload))));
   document.querySelectorAll('[data-jr-preview]').forEach(b => b.addEventListener('click', () => previewArticle(parseInt(b.dataset.jrPreview))));
   document.querySelectorAll('[data-jr-swap]').forEach(b => b.addEventListener('click', () => swapTopic(parseInt(b.dataset.jrSwap))));
+  document.querySelectorAll('[data-jr-publish]').forEach(b => b.addEventListener('click', () => publishArticleToSite(parseInt(b.dataset.jrPublish))));
+  if(typeof renderGhCard === 'function') renderGhCard();
 }
 
 function swapTopic(i){
@@ -2658,6 +2665,10 @@ function sableAutoDraft(){
       journal.drafts[i] = buildArticleHtml(c);
       journal.calendar[i].status = 'drafted';
     }
+    // On or past the publish date: push it live automatically if GitHub is connected
+    if(journal.calendar[i].status === 'drafted' && new Date(c.date).getTime() <= Date.now() && typeof ghReady === 'function' && ghReady()){
+      publishArticleToSite(i);
+    }
   });
   saveJournal(journal);
   renderJournal();
@@ -2666,6 +2677,165 @@ document.addEventListener('click', e => {
   if(e.target.closest('[data-view="journal"]')) setTimeout(() => { renderJournal(); sableAutoDraft(); }, 60);
 });
 setInterval(sableAutoDraft, 60*60*1000);
+
+
+/* ======================================================
+   SABLE · DIRECT PUBLISH TO GITHUB
+   Commits the article, links it from blog.html, and adds it
+   to sitemap.xml — all from the browser via the GitHub API.
+   Netlify then rebuilds automatically.
+   ====================================================== */
+const GH_KEY = 'lumiere_github';
+function loadGh(){ try { return JSON.parse(localStorage.getItem(GH_KEY)) || { owner:'', repo:'', token:'', branch:'main' }; } catch { return { owner:'', repo:'', token:'', branch:'main' }; } }
+function saveGh(g){ try { localStorage.setItem(GH_KEY, JSON.stringify(g)); flashSaved(); } catch(e){ toast('⚠ Could not save'); } }
+function ghReady(){ const g = loadGh(); return !!(g.owner && g.repo && g.token); }
+
+function b64(str){
+  return btoa(new Uint8Array(new TextEncoder().encode(str)).reduce((d,b)=>d+String.fromCharCode(b),''));
+}
+function unb64(str){
+  const bin = atob(str.replace(/\n/g,''));
+  return new TextDecoder().decode(Uint8Array.from(bin, c=>c.charCodeAt(0)));
+}
+async function ghGet(path){
+  const g = loadGh();
+  const r = await fetch(`https://api.github.com/repos/${g.owner}/${g.repo}/contents/${path}?ref=${g.branch}`, {
+    headers:{ Authorization:'token '+g.token, Accept:'application/vnd.github+json' }
+  });
+  if(r.status === 404) return null;
+  if(!r.ok) throw new Error('GitHub read failed: ' + r.status);
+  return r.json();
+}
+async function ghPut(path, content, message, sha){
+  const g = loadGh();
+  const body = { message, content: b64(content), branch: g.branch };
+  if(sha) body.sha = sha;
+  const r = await fetch(`https://api.github.com/repos/${g.owner}/${g.repo}/contents/${path}`, {
+    method:'PUT',
+    headers:{ Authorization:'token '+g.token, Accept:'application/vnd.github+json', 'Content-Type':'application/json' },
+    body: JSON.stringify(body)
+  });
+  if(!r.ok){ const e = await r.text(); throw new Error('GitHub write failed: ' + r.status + ' ' + e.slice(0,120)); }
+  return r.json();
+}
+
+/* Insert the new post card into blog.html and add it to sitemap.xml */
+function injectIntoBlogIndex(html, title, slug, type, blurb){
+  const card = `      <article class="post-card">
+        <div class="post-visual">✦</div>
+        <div class="post-body">
+          <span class="tag">${type}</span>
+          <h3>${title}</h3>
+          <p>${blurb}</p>
+          <div class="meta-line">The Lumière Team · New</div>
+          <a href="${slug}" class="read-more">Read the guide →</a>
+        </div>
+      </article>
+`;
+  const anchor = '    <div class="post-grid">\n';
+  return html.includes(anchor) ? html.replace(anchor, anchor + card) : html;
+}
+function injectIntoSitemap(xml, slug){
+  if(xml.includes(slug)) return xml;
+  const entry = `  <url>
+    <loc>https://lumiereskincarecaps.com/${slug}</loc>
+    <lastmod>${new Date().toISOString().slice(0,10)}</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+`;
+  return xml.replace('</urlset>', entry + '</urlset>');
+}
+
+async function publishArticleToSite(i){
+  if(!ghReady()){ toast('Connect GitHub first (Publishing Connection below)'); document.getElementById('gh-card')?.scrollIntoView({behavior:'smooth',block:'center'}); return; }
+  const c = journal.calendar[i];
+  const html = journal.drafts[i];
+  if(!html){ toast('Draft it first'); return; }
+  const slug = slugFor(c.topic);
+  const btn = document.querySelector(`[data-jr-publish="${i}"]`);
+  if(btn){ btn.disabled = true; btn.textContent = 'Publishing…'; }
+  try {
+    toast('Committing ' + slug + '…');
+    const existing = await ghGet(slug);
+    await ghPut(slug, html, 'Journal: publish "' + c.topic + '"', existing && existing.sha);
+
+    // Link from blog.html
+    const blog = await ghGet('blog.html');
+    if(blog){
+      const blogHtml = unb64(blog.content);
+      const blurb = 'A practical guide from the Lumière Journal — straight answers, no filler.';
+      const updated = injectIntoBlogIndex(blogHtml, c.topic, slug, c.type, blurb);
+      if(updated !== blogHtml) await ghPut('blog.html', updated, 'Journal: link "' + c.topic + '" from index', blog.sha);
+    }
+    // Add to sitemap
+    const sm = await ghGet('sitemap.xml');
+    if(sm){
+      const smXml = unb64(sm.content);
+      const updated = injectIntoSitemap(smXml, slug);
+      if(updated !== smXml) await ghPut('sitemap.xml', updated, 'Journal: add ' + slug + ' to sitemap', sm.sha);
+    }
+
+    journal.calendar[i].status = 'published';
+    journal.calendar[i].url = slug;
+    if(!journal.published.includes(c.topic)) journal.published.push(c.topic);
+    saveJournal(journal);
+    renderJournal();
+    addLog && addLog('success', '📝 Published article: ' + slug);
+    toast('✓ Published — live in about a minute');
+  } catch(err){
+    console.error(err);
+    toast('⚠ ' + err.message);
+  } finally {
+    if(btn){ btn.disabled = false; btn.textContent = 'Publish'; }
+  }
+}
+window.publishArticleToSite = publishArticleToSite;
+
+/* Publishing connection panel */
+function renderGhCard(){
+  const el = document.getElementById('gh-card');
+  if(!el) return;
+  const g = loadGh();
+  const ready = ghReady();
+  el.innerHTML = `
+    <div class="card-head">
+      <h3>Publishing Connection</h3>
+      <span class="conn-status ${ready?'cs-connected':'cs-not-connected'}">${ready?'✓ Connected':'Not Connected'}</span>
+    </div>
+    <p style="font-size:0.85rem;margin-bottom:1rem">Connect your repository once and Sable can publish articles straight to the live site — no downloading, no manual steps. Netlify rebuilds automatically.</p>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1rem">
+      <div><label class="ch-label">GitHub Owner / Username</label><input class="ch-input" id="gh-owner" placeholder="lumiereskincarecaps" value="${g.owner||''}"></div>
+      <div><label class="ch-label">Repository</label><input class="ch-input" id="gh-repo" placeholder="lumiere-site" value="${g.repo||''}"></div>
+      <div><label class="ch-label">Branch</label><input class="ch-input" id="gh-branch" placeholder="main" value="${g.branch||'main'}"></div>
+      <div><label class="ch-label">Access Token</label><input type="password" class="ch-input" id="gh-token" placeholder="github_pat_…" value="${g.token||''}"></div>
+    </div>
+    <div style="display:flex;gap:0.7rem;margin-top:1.2rem;flex-wrap:wrap">
+      <button class="btn btn-sm" id="gh-save">Save &amp; Connect</button>
+      <button class="btn btn-sm btn-ghost" id="gh-test">Test Connection</button>
+    </div>
+    <div class="warn-note" style="margin-top:1rem;padding:0.9rem 1.1rem;background:#fff8e6;border:1px solid var(--amber);border-radius:8px;font-size:0.8rem;color:#7a5518">
+      <strong>Use a fine-grained token limited to this one repository</strong>, with Contents: Read and write. The token is stored in this browser only — anyone with access to this device and admin password could read it. Revoke it anytime at github.com/settings/tokens.
+    </div>`;
+  el.querySelector('#gh-save').addEventListener('click', () => {
+    saveGh({
+      owner: document.getElementById('gh-owner').value.trim(),
+      repo: document.getElementById('gh-repo').value.trim(),
+      branch: document.getElementById('gh-branch').value.trim() || 'main',
+      token: document.getElementById('gh-token').value.trim()
+    });
+    renderGhCard(); renderJournal();
+    toast(ghReady() ? '✓ GitHub connected — Sable can publish directly' : 'Saved — fill every field to connect');
+  });
+  el.querySelector('#gh-test').addEventListener('click', async () => {
+    if(!ghReady()){ toast('Fill in all fields first'); return; }
+    toast('Testing…');
+    try {
+      const f = await ghGet('blog.html');
+      toast(f ? '✓ Connected — repository readable and writable' : '⚠ Connected, but blog.html not found in that repo');
+    } catch(e){ toast('⚠ ' + e.message); }
+  });
+}
 
 /* ======================================================
    SITE AUDIT
