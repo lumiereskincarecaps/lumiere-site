@@ -30,6 +30,17 @@
     subs:        'lumiere_subscriptions'
   };
 
+  /* One-time purge of demo data cached in browsers before launch.
+     Bump DATA_VERSION whenever seeded demo data needs clearing again. */
+  const DATA_VERSION = '2026-08-launch-1';
+  try {
+    if(localStorage.getItem('lumiere_data_version') !== DATA_VERSION){
+      ['lumiere_subscriptions','lumiere_ambassadors','lumiere_orders','lumiere_inquiries','lumiere_refunds','lumiere_rewards']
+        .forEach(k => localStorage.removeItem(k));
+      localStorage.setItem('lumiere_data_version', DATA_VERSION);
+    }
+  } catch(e){}
+
   /* ---------- HTTP helper for production ---------- */
   async function http(path, opts = {}){
     const res = await fetch(CFG.apiBase + path, {
@@ -231,6 +242,12 @@
   }
 
   const Subscriptions = {
+    /* Remove every subscription record */
+    clearAll(){
+      LS.set(KEYS.subs, {});
+      window.dispatchEvent(new CustomEvent('subscriptions:change'));
+      return true;
+    },
     async list(email){
       const all = seedSubs();
       if(isDemo()) return email ? (all[email] || []) : Object.values(all).flat();

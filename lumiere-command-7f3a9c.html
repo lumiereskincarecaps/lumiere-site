@@ -1050,6 +1050,7 @@
               <button class="filter-pill" data-sub-filter="paused">Paused</button>
               <button class="filter-pill" data-sub-filter="canceled">Canceled</button>
               <input type="text" class="search-input" placeholder="Search customer or ID" id="sub-search">
+              <button class="btn btn-sm btn-ghost" id="clear-all-subs" style="border-color:var(--red);color:var(--red);white-space:nowrap">Clear All</button>
             </div>
           </div>
           <div class="table-scroll">
@@ -1969,6 +1970,20 @@ function openInquiry(id){
 
   openPanel();
 }
+
+/* Clear every subscription (removes leftover demo data too) */
+document.getElementById('clear-all-subs')?.addEventListener('click', async () => {
+  if(!confirm('Remove ALL subscriptions?\n\nThis clears every subscription record, including any demo data still cached in this browser. It cannot be undone.')) return;
+  try {
+    localStorage.removeItem('lumiere_subscriptions');
+    if(window.Lumiere?.Subscriptions?.clearAll) Lumiere.Subscriptions.clearAll();
+  } catch(e){}
+  if(typeof renderSubscriptions === 'function') renderSubscriptions();
+  const badge = document.getElementById('sub-count');
+  if(badge) badge.textContent = '0';
+  addLog && addLog('warn', 'All subscriptions cleared');
+  toast('✓ All subscriptions cleared');
+});
 
 /* Inquiries toolbar */
 document.getElementById('refresh-inbox')?.addEventListener('click', () => {
