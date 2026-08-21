@@ -905,6 +905,20 @@
           <div id="aeo-checks" style="margin-top:1.2rem"></div>
         </div>
 
+
+        <!-- META MANAGER -->
+        <div class="card" style="margin-top:1.5rem">
+          <div class="card-head">
+            <h3>Meta Manager · Titles &amp; Descriptions</h3>
+            <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
+              <button class="btn btn-sm btn-ghost" id="meta-auto">Auto-Optimize: OFF</button>
+              <button class="btn btn-sm" id="meta-scan">↻ Scan All Pages</button>
+            </div>
+          </div>
+          <p style="font-size:0.85rem;margin-bottom:1rem">Every page's title, description and target keywords. Vesper flags anything Google would truncate — titles over 60 characters or descriptions over 160 — and rewrites them around the page's keywords. Edits publish straight to the live site.</p>
+          <div id="meta-summary" style="margin-bottom:1.2rem"></div>
+          <div id="meta-table"></div>
+        </div>
         <div class="grid-2" style="margin-top:1.5rem">
           <div class="card">
             <div class="card-head"><h3>Answer Block Generator</h3></div>
@@ -2065,6 +2079,7 @@ function renderSEO(){
   renderCwv();
   renderAiReadiness();
   if(typeof renderAeo === 'function') renderAeo();
+  if(typeof renderMetaManager === 'function') renderMetaManager();
 
   const kw = $('#keyword-ops');
   kw.innerHTML = `
@@ -2591,6 +2606,292 @@ document.getElementById('aeo-fix')?.addEventListener('click', () => {
     toast('✓ All AEO fixes queued — deploy to publish');
   }, 1800);
 });
+
+
+/* ======================================================
+   VESPER · META MANAGER
+   Reads every page's title/description/keywords from the
+   live repo, flags anything Google would truncate, rewrites
+   around target keywords, and publishes the fix.
+   ====================================================== */
+const META_KEY = 'lumiere_metas';
+const TITLE_MAX = 60, TITLE_MIN = 30, DESC_MAX = 160, DESC_MIN = 120;
+
+/* Target keywords per page — what each page should rank for */
+const PAGE_KEYWORDS = {
+  'index.html':                      { name:'Homepage',        kw:'travel skincare capsules, single use skincare, TSA friendly skincare' },
+  'shop.html':                       { name:'Shop',            kw:'buy travel skincare capsules, skincare capsule set, travel size skincare kit' },
+  'instructions.html':               { name:'How to Use',      kw:'how to use skincare capsules, day and night skincare routine' },
+  'blog.html':                       { name:'Journal',         kw:'travel skincare blog, TSA liquid rules, skincare ingredient guides' },
+  'blog-tsa-liquid-rules.html':      { name:'TSA Rules',       kw:'TSA liquid rules, 3-1-1 rule, how many ounces of liquid on a plane' },
+  'blog-travel-routine.html':        { name:'Travel Routine',  kw:'travel skincare routine, in flight skincare' },
+  'blog-ingredients-explained.html': { name:'Ingredients',     kw:'skincare ingredients explained, what does niacinamide do' },
+  'travel-hacks.html':               { name:'Travel Hacks',    kw:'travel skincare hack, carry on skincare, leak proof skincare' },
+  'travel-gallery.html':             { name:'Packing',         kw:'travel packing before and after, carry on packing skincare' },
+  'before-after.html':               { name:'Before & After',  kw:'skincare before and after, 12 week skincare results' },
+  'about.html':                      { name:'About',           kw:'about lumiere skincare, single dose skincare brand' },
+  'contact.html':                    { name:'Contact',         kw:'contact lumiere skincare, wholesale skincare inquiry' },
+  'shipping.html':                   { name:'Shipping',        kw:'skincare shipping times, free shipping skincare' },
+  'returns.html':                    { name:'Returns',         kw:'skincare returns policy, 30 day guarantee skincare' },
+  'affiliate.html':                  { name:'Affiliate',       kw:'skincare affiliate program, beauty affiliate commission' },
+  'ambassador.html':                 { name:'Ambassador',      kw:'brand ambassador program skincare' },
+  'portal.html':                     { name:'Account Portal',  kw:'lumiere account, order tracking' },
+  'privacy.html':                    { name:'Privacy',         kw:'privacy policy skincare' },
+  'terms.html':                      { name:'Terms',           kw:'terms of service, skincare purchase terms' }
+};
+
+function loadMetas(){ try { return { pages:{}, autoOptimize:false, lastScan:null, ...(JSON.parse(localStorage.getItem(META_KEY))||{}) }; } catch { return { pages:{}, autoOptimize:false, lastScan:null }; } }
+function saveMetas(m){ try { localStorage.setItem(META_KEY, JSON.stringify(m)); flashSaved(); } catch(e){ toast('⚠ Could not save'); } }
+let metas = loadMetas();
+
+function metaIssues(t, d){
+  const out = [];
+  if(!t) out.push('missing title');
+  else if(t.length > TITLE_MAX) out.push(`title ${t.length} chars — Google truncates over ${TITLE_MAX}`);
+  else if(t.length < TITLE_MIN) out.push(`title only ${t.length} chars — too short to use the space`);
+  if(!d) out.push('missing description');
+  else if(d.length > DESC_MAX) out.push(`description ${d.length} chars — truncated over ${DESC_MAX}`);
+  else if(d.length < DESC_MIN) out.push(`description only ${d.length} chars — add detail`);
+  return out;
+}
+
+/* Pull the live metas straight from the repo */
+async function scanMetas(){
+  if(typeof ghReady !== 'function' || !ghReady()){
+    toast('Connect GitHub in the Journal tab so Vesper can read the live pages');
+    return false;
+  }
+  const files = Object.keys(PAGE_KEYWORDS);
+  for(const f of files){
+    try {
+      const res = await ghGet(f);
+      if(!res) continue;
+      const html = unb64(res.content);
+      const t = (html.match(/<title>([\s\S]*?)<\/title>/)||[])[1] || '';
+      const d = (html.match(/<meta name="description" content="([^"]*)"/)||[])[1] || '';
+      const k = (html.match(/<meta name="keywords" content="([^"]*)"/)||[])[1] || '';
+      metas.pages[f] = { title:t.trim(), desc:d.trim(), kw:k.trim(), sha:res.sha };
+    } catch(e){ console.warn('meta scan failed for', f, e); }
+  }
+  metas.lastScan = new Date().toISOString();
+  saveMetas(metas);
+  return true;
+}
+
+/* Rewrite a title/description around the page's target keywords */
+function optimizeMeta(file){
+  const target = PAGE_KEYWORDS[file];
+  const cur = metas.pages[file] || {};
+  const primary = (target.kw.split(',')[0] || '').trim();
+  let title = cur.title || '';
+  let desc = cur.desc || '';
+
+  // Title: keep it under the limit and ensure the brand + primary term appear
+  if(!title || title.length > TITLE_MAX){
+    const core = target.name === 'Homepage' ? 'Lumière Skincare Capsules' : target.name;
+    let t = `${core} | ${primary.replace(/\b\w/g, c => c.toUpperCase())}`;
+    if(t.length > TITLE_MAX) t = t.slice(0, TITLE_MAX - 1).replace(/[\s|,-]+$/,'');
+    title = t;
+  }
+  // Description: trim to the limit at a sentence or word boundary
+  if(desc.length > DESC_MAX){
+    let d = desc.slice(0, DESC_MAX);
+    const cut = Math.max(d.lastIndexOf('. '), d.lastIndexOf(' — '), d.lastIndexOf(', '));
+    desc = (cut > DESC_MIN ? d.slice(0, cut + 1) : d.replace(/\s+\S*$/,'')).trim();
+  }
+  return { title, desc, kw: target.kw };
+}
+
+function renderMetaManager(){
+  const table = document.getElementById('meta-table');
+  if(!table) return;
+  const files = Object.keys(PAGE_KEYWORDS);
+  const scanned = files.filter(f => metas.pages[f]);
+  const problems = scanned.filter(f => metaIssues(metas.pages[f].title, metas.pages[f].desc).length);
+
+  const autoBtn = document.getElementById('meta-auto');
+  if(autoBtn){
+    autoBtn.textContent = 'Auto-Optimize: ' + (metas.autoOptimize ? 'ON' : 'OFF');
+    autoBtn.style.background = metas.autoOptimize ? 'var(--green)' : '';
+    autoBtn.style.color = metas.autoOptimize ? '#fff' : '';
+  }
+
+  document.getElementById('meta-summary').innerHTML = `
+    <div style="display:flex;gap:2rem;flex-wrap:wrap;align-items:center">
+      <div><div style="font-family:'Cormorant Garamond',serif;font-size:2.2rem;font-weight:500;color:var(--ink);line-height:1">${scanned.length}<span style="font-size:1rem;color:var(--ink-soft)">/${files.length}</span></div><span class="stat-label">Pages scanned</span></div>
+      <div><div style="font-family:'Cormorant Garamond',serif;font-size:2.2rem;font-weight:500;color:${problems.length?'var(--amber)':'var(--green)'};line-height:1">${problems.length}</div><span class="stat-label">Need attention</span></div>
+      <div style="flex:1;min-width:200px;font-size:0.82rem;color:var(--ink-soft)">
+        ${metas.lastScan ? 'Last scan: ' + new Date(metas.lastScan).toLocaleString() : 'Not scanned yet — click Scan All Pages.'}
+      </div>
+    </div>`;
+
+  if(!scanned.length){
+    table.innerHTML = '<p style="font-size:0.88rem;color:var(--ink-soft);font-style:italic;padding:1.5rem 0">No data yet. Click <strong>Scan All Pages</strong> — Vesper reads the live site and lists every title and description here.</p>';
+    return;
+  }
+
+  table.innerHTML = `
+    <div class="audit-row head" style="grid-template-columns:1fr 2.4fr auto">
+      <div>Page</div><div>Title &amp; Description</div><div>Actions</div>
+    </div>
+    ${files.filter(f=>metas.pages[f]).map(f => {
+      const m = metas.pages[f];
+      const issues = metaIssues(m.title, m.desc);
+      const tLen = (m.title||'').length, dLen = (m.desc||'').length;
+      const tCol = tLen > TITLE_MAX ? 'var(--red)' : tLen < TITLE_MIN ? 'var(--amber)' : 'var(--green)';
+      const dCol = dLen > DESC_MAX ? 'var(--red)' : dLen < DESC_MIN ? 'var(--amber)' : 'var(--green)';
+      return `
+      <div class="audit-row" style="grid-template-columns:1fr 2.4fr auto;align-items:start">
+        <div>
+          <div style="font-weight:500">${PAGE_KEYWORDS[f].name}</div>
+          <div style="font-size:0.7rem;color:var(--ink-soft);font-family:'JetBrains Mono',monospace">${f}</div>
+          <div style="font-size:0.7rem;color:var(--gold-deep);margin-top:0.3rem">${PAGE_KEYWORDS[f].kw.split(',')[0]}</div>
+        </div>
+        <div style="font-size:0.85rem">
+          <div style="color:var(--ink);font-weight:500">${m.title || '<em style="color:var(--red)">missing</em>'} <span style="color:${tCol};font-size:0.7rem;font-family:'JetBrains Mono',monospace">${tLen}</span></div>
+          <div style="color:var(--ink-soft);margin-top:0.25rem;line-height:1.5">${m.desc || '<em style="color:var(--red)">missing</em>'} <span style="color:${dCol};font-size:0.7rem;font-family:'JetBrains Mono',monospace">${dLen}</span></div>
+          ${issues.length ? `<div style="font-size:0.74rem;color:var(--amber);margin-top:0.4rem">⚠ ${issues.join(' · ')}</div>` : '<div style="font-size:0.74rem;color:var(--green);margin-top:0.4rem">✓ Within Google display limits</div>'}
+        </div>
+        <div style="display:flex;flex-direction:column;gap:0.4rem">
+          <button class="btn btn-sm btn-ghost" data-meta-edit="${f}">Edit</button>
+          ${issues.length ? `<button class="btn btn-sm" data-meta-fix="${f}">Optimize</button>` : ''}
+        </div>
+      </div>`;
+    }).join('')}`;
+
+  document.querySelectorAll('[data-meta-edit]').forEach(b => b.addEventListener('click', () => openMetaEditor(b.dataset.metaEdit)));
+  document.querySelectorAll('[data-meta-fix]').forEach(b => b.addEventListener('click', async () => {
+    const f = b.dataset.metaFix;
+    const opt = optimizeMeta(f);
+    b.disabled = true; b.textContent = 'Publishing…';
+    const ok = await publishMeta(f, opt.title, opt.desc, opt.kw);
+    b.disabled = false; b.textContent = 'Optimize';
+    if(ok) toast('✓ ' + PAGE_KEYWORDS[f].name + ' meta optimized and published');
+  }));
+}
+
+function openMetaEditor(file){
+  const m = metas.pages[file] || { title:'', desc:'', kw:'' };
+  const target = PAGE_KEYWORDS[file];
+  $('#panel-title').textContent = 'Meta · ' + target.name;
+  $('#panel-body').innerHTML = `
+    <p style="font-size:0.85rem;color:var(--ink-soft);margin-bottom:0.4rem"><strong>Target keywords:</strong> ${target.kw}</p>
+    <p style="font-size:0.8rem;color:var(--ink-soft);margin-bottom:1.5rem">Aim for a title of 50–60 characters and a description of 140–160. Lead with the benefit, include the primary keyword naturally.</p>
+
+    <label class="ch-label">Title <span id="mt-count" style="text-transform:none;letter-spacing:0;font-weight:400"></span></label>
+    <input class="ch-input" id="mt-title" value="${(m.title||'').replace(/"/g,'&quot;')}" style="margin-bottom:1.1rem">
+
+    <label class="ch-label">Description <span id="md-count" style="text-transform:none;letter-spacing:0;font-weight:400"></span></label>
+    <textarea class="ch-input" id="mt-desc" rows="4" style="margin-bottom:1.1rem;resize:vertical;font-family:'Inter',sans-serif">${m.desc||''}</textarea>
+
+    <label class="ch-label">Keywords</label>
+    <input class="ch-input" id="mt-kw" value="${(m.kw||target.kw).replace(/"/g,'&quot;')}" style="margin-bottom:1.4rem">
+
+    <div style="background:#fff;border:1px solid var(--line);border-radius:10px;padding:1.2rem;margin-bottom:1.4rem">
+      <div style="font-size:0.68rem;letter-spacing:0.2em;text-transform:uppercase;color:var(--gold-deep);font-weight:700;margin-bottom:0.7rem">Google Preview</div>
+      <div style="font-size:0.72rem;color:#4d5156">lumiereskincarecaps.com › ${file.replace('.html','')}</div>
+      <div id="mp-title" style="color:#1a0dab;font-size:1.15rem;margin:0.2rem 0;font-family:arial,sans-serif"></div>
+      <div id="mp-desc" style="color:#4d5156;font-size:0.86rem;line-height:1.5;font-family:arial,sans-serif"></div>
+    </div>
+
+    <div style="display:flex;gap:0.6rem;flex-wrap:wrap">
+      <button class="btn btn-success" id="mt-publish">Publish to Live Site</button>
+      <button class="btn btn-ghost" id="mt-optimize">Let Vesper Rewrite</button>
+      <button class="btn btn-ghost" onclick="closePanel()">Cancel</button>
+    </div>`;
+
+  const t = $('#mt-title'), d = $('#mt-desc');
+  const refresh = () => {
+    const tl = t.value.length, dl = d.value.length;
+    $('#mt-count').innerHTML = `<span style="color:${tl>TITLE_MAX?'var(--red)':tl<TITLE_MIN?'var(--amber)':'var(--green)'}">${tl}/60</span>`;
+    $('#md-count').innerHTML = `<span style="color:${dl>DESC_MAX?'var(--red)':dl<DESC_MIN?'var(--amber)':'var(--green)'}">${dl}/160</span>`;
+    $('#mp-title').textContent = t.value.length > TITLE_MAX ? t.value.slice(0,TITLE_MAX) + '…' : t.value;
+    $('#mp-desc').textContent = d.value.length > DESC_MAX ? d.value.slice(0,DESC_MAX) + '…' : d.value;
+  };
+  t.addEventListener('input', refresh); d.addEventListener('input', refresh); refresh();
+
+  $('#mt-optimize').addEventListener('click', () => {
+    const opt = optimizeMeta(file);
+    t.value = opt.title; d.value = opt.desc; $('#mt-kw').value = opt.kw;
+    refresh(); toast('Vesper rewrote it — review, then publish');
+  });
+  $('#mt-publish').addEventListener('click', async () => {
+    const btn = $('#mt-publish'); btn.disabled = true; btn.textContent = 'Publishing…';
+    const ok = await publishMeta(file, t.value.trim(), d.value.trim(), $('#mt-kw').value.trim());
+    btn.disabled = false; btn.textContent = 'Publish to Live Site';
+    if(ok){ toast('✓ Published — live in about a minute'); closePanel(); }
+  });
+  openPanel();
+}
+
+/* Commit the meta change to the live page */
+async function publishMeta(file, title, desc, kw){
+  if(typeof ghReady !== 'function' || !ghReady()){
+    toast('Connect GitHub in the Journal tab first');
+    return false;
+  }
+  try {
+    const res = await ghGet(file);
+    if(!res) throw new Error(file + ' not found in the repo');
+    let html = unb64(res.content);
+    html = html.replace(/<title>[\s\S]*?<\/title>/, '<title>' + title + '</title>');
+    const setTag = (attr, name, content) => {
+      const re = new RegExp('<meta ' + attr + '="' + name.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + '" content="[^"]*"\\s*/?>');
+      const tag = `<meta ${attr}="${name}" content="${content.replace(/"/g,'&quot;')}" />`;
+      html = re.test(html) ? html.replace(re, tag) : html.replace('</title>', '</title>\n' + tag);
+    };
+    setTag('name','description', desc);
+    setTag('name','keywords', kw);
+    await ghPut(file, html, 'SEO: update meta for ' + file, res.sha);
+    metas.pages[file] = { title, desc, kw, sha:null };
+    saveMetas(metas);
+    renderMetaManager();
+    addLog && addLog('success', '🔍 Meta updated: ' + file);
+    return true;
+  } catch(err){
+    console.error(err);
+    toast('⚠ ' + err.message);
+    return false;
+  }
+}
+
+document.getElementById('meta-scan')?.addEventListener('click', async () => {
+  const b = document.getElementById('meta-scan');
+  b.disabled = true; b.textContent = 'Scanning…';
+  toast('Vesper is reading every page from the live site…');
+  const ok = await scanMetas();
+  b.disabled = false; b.textContent = '↻ Scan All Pages';
+  renderMetaManager();
+  if(ok) toast('✓ Scan complete');
+});
+
+document.getElementById('meta-auto')?.addEventListener('click', async () => {
+  metas.autoOptimize = !metas.autoOptimize;
+  saveMetas(metas);
+  renderMetaManager();
+  if(metas.autoOptimize){
+    toast('Auto-Optimize ON — Vesper will fix truncated metas automatically');
+    await autoOptimizeMetas();
+  } else {
+    toast('Auto-Optimize OFF — Vesper will only flag issues');
+  }
+});
+
+/* When enabled, fix every flagged page without asking */
+async function autoOptimizeMetas(){
+  if(!metas.autoOptimize) return;
+  if(!Object.keys(metas.pages).length) await scanMetas();
+  const bad = Object.keys(metas.pages).filter(f => metaIssues(metas.pages[f].title, metas.pages[f].desc).length);
+  if(!bad.length){ renderMetaManager(); return; }
+  toast('Vesper is optimizing ' + bad.length + ' page' + (bad.length>1?'s':'') + '…');
+  for(const f of bad){
+    const opt = optimizeMeta(f);
+    await publishMeta(f, opt.title, opt.desc, opt.kw);
+  }
+  toast('✓ ' + bad.length + ' page meta' + (bad.length>1?'s':'') + ' optimized and published');
+}
+/* Run with the weekly scan */
+setInterval(() => { if(metas.autoOptimize) autoOptimizeMetas(); }, 7*24*60*60*1000);
 
 /* ======================================================
    SABLE · JOURNAL / EDITORIAL AGENT
