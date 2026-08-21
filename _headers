@@ -1,0 +1,26 @@
+# Netlify cache rules
+# HTML must always revalidate so updates appear immediately
+/*.html
+  Cache-Control: public, max-age=0, must-revalidate
+
+/
+  Cache-Control: public, max-age=0, must-revalidate
+
+# Scripts and data: revalidate too (they change with releases)
+/*.js
+  Cache-Control: public, max-age=0, must-revalidate
+
+/img/manifest.json
+  Cache-Control: public, max-age=0, must-revalidate
+
+# Images are content-addressed by filename — safe to cache hard
+/img/*
+  Cache-Control: public, max-age=31536000
+
+# Keep the admin and portal out of search engines
+/lumiere-command-7f3a9c.html
+  X-Robots-Tag: noindex, nofollow
+/portal.html
+  X-Robots-Tag: noindex, nofollow
+/checkout.html
+  X-Robots-Tag: noindex, nofollow
