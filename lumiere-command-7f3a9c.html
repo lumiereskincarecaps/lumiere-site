@@ -658,12 +658,13 @@
       <p class="lead">Six AI agents are working in the background. Here's what they've handled today.</p>
       <div class="tabs" role="tablist">
         <button class="tab active" data-view="overview">Overview</button>
-        <button class="tab" data-view="agents">AI Agents <span class="badge-count">6</span></button>
+        <button class="tab" data-view="agents">AI Agents <span class="badge-count">8</span></button>
         <button class="tab" data-view="inquiries">Inquiries <span class="badge-count" id="inq-count">5</span></button>
         <button class="tab" data-view="refunds">Refunds <span class="badge-count" id="ref-count">3</span></button>
         <button class="tab" data-view="subscriptions">Subscriptions <span class="badge-count" id="sub-count" style="background:var(--green)">0</span></button>
         <button class="tab" data-view="ambassadors">Ambassadors <span class="badge-count" id="amb-count" style="background:var(--violet)">0</span></button>
         <button class="tab" data-view="seo">SEO Agent</button>
+        <button class="tab" data-view="journal">Journal <span class="badge-count" id="journal-count" style="background:var(--gold-deep)">0</span></button>
         <button class="tab" data-view="images">Images</button>
         <button class="tab" data-view="audit">Site Audit</button>
         <button class="tab" data-view="deploy">Deploy</button>
@@ -941,6 +942,57 @@
       </section>
 
       <!-- ============ IMAGES ============ -->
+      <!-- ============ JOURNAL (SABLE) ============ -->
+      <section class="view" id="view-journal">
+
+        <div class="card" style="margin-bottom:1.5rem">
+          <div style="display:flex;align-items:center;gap:1.5rem;flex-wrap:wrap">
+            <div class="agent-avatar a-lyra" style="width:80px;height:80px;font-size:2rem">S</div>
+            <div style="flex:1;min-width:280px">
+              <h2 style="margin-bottom:0.3rem">Sable · The Journal Agent</h2>
+              <p style="font-size:0.95rem;line-height:1.6;margin-bottom:0.7rem">Publishes <strong>two articles a week</strong>. Mines your inquiries, FAQs, product facts and TSA rules for topics real people search, then drafts complete SEO/AIO-ready articles you approve before they go live.</p>
+              <div>
+                <span class="pill">Topic Mining</span><span class="pill">Editorial Calendar</span><span class="pill">FAQ Schema</span><span class="pill">Internal Linking</span><span class="pill">AIO Answers</span>
+              </div>
+            </div>
+            <div style="text-align:right">
+              <div class="stat-value" id="jr-published">0</div>
+              <span class="stat-label">Published</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="stats-row">
+          <div class="stat-card"><span class="stat-label">Topics In Queue</span><div class="stat-value" id="jr-queued">—</div><span class="stat-meta">Mined from your site &amp; inbox</span></div>
+          <div class="stat-card"><span class="stat-label">Drafts Ready</span><div class="stat-value" style="color:var(--amber)" id="jr-drafts">—</div><span class="stat-meta">Awaiting your review</span></div>
+          <div class="stat-card"><span class="stat-label">Cadence</span><div class="stat-value" style="font-size:1.5rem;padding-top:0.5rem">2 / week</div><span class="stat-meta">Tue &amp; Fri</span></div>
+          <div class="stat-card"><span class="stat-label">Next Scheduled</span><div class="stat-value" style="font-size:1.3rem;padding-top:0.6rem" id="jr-next">—</div><span class="stat-meta" id="jr-next-title">—</span></div>
+        </div>
+
+        <div class="card" style="margin-bottom:1.5rem">
+          <div class="card-head">
+            <h3>Editorial Calendar</h3>
+            <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
+              <button class="btn btn-sm btn-ghost" id="jr-auto">Auto-Publish: OFF</button>
+              <button class="btn btn-sm" id="jr-mine">↻ Mine New Topics</button>
+            </div>
+          </div>
+          <p style="font-size:0.85rem;margin-bottom:1rem">Two slots per week. Sable drafts each article a few days ahead — click <strong>Draft</strong> to generate, review it, then download the ready-to-publish HTML file.</p>
+          <div id="jr-calendar"></div>
+        </div>
+
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-head"><h3>Topic Queue</h3><span class="meta" id="jr-source-meta">Ranked by search demand &amp; fit</span></div>
+            <div id="jr-queue"></div>
+          </div>
+          <div class="card">
+            <div class="card-head"><h3>Where Topics Come From</h3></div>
+            <div id="jr-sources"></div>
+          </div>
+        </div>
+      </section>
+
       <section class="view" id="view-images">
 
         <!-- Hero -->
@@ -1314,6 +1366,15 @@ const AGENTS = [
     tasksToday:0, accuracy:'89.5%',
     body:'Generates campaign concepts, writes A/B copy variants, schedules social posts, and analyzes campaign attribution. Aware of cultural moments, seasonal hooks, and your brand voice guide.',
     capabilities:['A/B Copy Generation','Campaign Concepting','Social Scheduling','Attribution Modeling','Brand Voice','Email Sequence Drafting'],
+    recent:[{ text:'No activity yet', time:'—' }]
+  },
+  {
+    id:'sable', name:'Sable', avatar:'S', avatarClass:'a-lyra',
+    role:'Journal &amp; Editorial Agent',
+    status:'active', statusLabel:'Active',
+    tasksToday:0, accuracy:'94.0%',
+    body:'Runs the Journal on a two-articles-per-week cadence. Mines customer inquiries, site FAQs, product facts and TSA rules for topics that people actually search, then drafts full SEO/AIO-ready articles with schema, internal links and FAQ blocks — ready for your review.',
+    capabilities:['Topic Mining','Editorial Calendar','SEO Article Drafting','FAQ &amp; HowTo Schema','Internal Linking','AIO Answer Blocks'],
     recent:[{ text:'No activity yet', time:'—' }]
   }
 ];
@@ -2249,6 +2310,362 @@ document.addEventListener('click', e => {
 });
 setInterval(() => { vesperAutoCheck(); vesperWeeklyScan(false); }, 60*60*1000); // hourly eligibility check
 document.addEventListener('DOMContentLoaded', () => setTimeout(() => { vesperAutoCheck(); vesperWeeklyScan(false); }, 2500));
+
+
+/* ======================================================
+   SABLE · JOURNAL / EDITORIAL AGENT
+   Mines topics from inquiries, FAQs, product facts and TSA
+   rules; keeps a 2-per-week calendar; drafts full articles.
+   ====================================================== */
+const JOURNAL_KEY = 'lumiere_journal';
+
+/* Seed topic bank — mined from the site's own pages, FAQs and product facts.
+   Each carries the angle, keyword target, and which page it came from. */
+const TOPIC_BANK = [
+  { t:'How Many Ounces of Liquid Can You Actually Bring on a Plane?', kw:'how many ounces liquid on plane, 3.4 oz rule', src:'TSA rules · travel-hacks.html', why:'High-volume search; direct answer question AI engines love to cite.', type:'Travel Rules' },
+  { t:'Can You Bring Skincare in a Carry-On? A Product-by-Product List', kw:'skincare carry on rules, can I bring moisturizer on plane', src:'TSA rules + shop.html', why:'Long-tail list format ranks well and earns featured snippets.', type:'Travel Rules' },
+  { t:'What Counts as a Liquid at Airport Security (and What Doesn&rsquo;t)', kw:'what counts as a liquid TSA, is sunscreen a liquid', src:'Blog: TSA rules', why:'Clarifies the single most misunderstood rule in travel beauty.', type:'Travel Rules' },
+  { t:'Do Skincare Capsules Count Toward Your Quart Bag?', kw:'skincare capsules TSA, do capsules count as liquids', src:'Homepage FAQ', why:'Directly answers your top pre-purchase objection.', type:'Product' },
+  { t:'How Long Do Skincare Capsules Last? Shelf Life, Explained', kw:'skincare capsule shelf life, how long does skincare last', src:'Homepage specs · 3-year shelf life', why:'Product fact already on the site, expanded into a searchable answer.', type:'Product' },
+  { t:'Men&rsquo;s Travel Skincare: The Four Steps That Actually Matter', kw:'mens travel skincare routine, simple skincare for men', src:'instructions.html · men can skip steps', why:'Unisex positioning is underused — this opens a whole audience.', type:'Routines' },
+  { t:'Why Your Skin Feels Terrible After Flying (and What Helps)', kw:'skin after flying, dry skin on plane, in flight skincare', src:'travel-hacks.html · cabin humidity', why:'Emotional problem post that leads naturally to the hydrogel mask.', type:'Routines' },
+  { t:'Day vs. Night Skincare: Why the Order Changes', kw:'day vs night skincare routine, morning skincare order', src:'instructions.html', why:'Educational depth that supports the six-step structure.', type:'Routines' },
+  { t:'Niacinamide vs. Vitamin C: Which Belongs in Your Routine?', kw:'niacinamide vs vitamin c, can you use them together', src:'Ingredients page', why:'Comparison posts earn links and AI citations.', type:'Ingredients' },
+  { t:'What Is Ectoin? The Travel Ingredient You Haven&rsquo;t Heard Of', kw:'what is ectoin skincare, ectoin benefits', src:'Ingredient list', why:'Low competition, genuinely differentiating ingredient.', type:'Ingredients' },
+  { t:'Are Single-Use Capsules Bad for the Environment? An Honest Answer', kw:'single use skincare sustainability, capsule packaging recycling', src:'Customer objection', why:'Addressing the criticism head-on builds trust — and AI cites candid sources.', type:'Brand' },
+  { t:'How to Pack a Carry-On for a Week Without Checking a Bag', kw:'carry on packing list week, one bag travel', src:'travel-gallery.html', why:'Broad top-of-funnel search that leads into the product.', type:'Travel Rules' },
+  { t:'Hotel Bathroom Skincare: A Routine for Bad Lighting and No Counter', kw:'hotel skincare routine, travel skincare small space', src:'travel-hacks.html', why:'Specific scenario content converts unusually well.', type:'Routines' },
+  { t:'How Long Until Skincare Actually Works? A Realistic Timeline', kw:'how long for skincare to work, skincare results timeline', src:'before-after.html · 12 weeks', why:'Honest timeline content builds credibility and reduces returns.', type:'Ingredients' },
+  { t:'What to Do When TSA Takes Your Skincare', kw:'TSA confiscated my skincare, what happens to confiscated items', src:'travel-hacks.html', why:'Captures people at the exact moment of pain.', type:'Travel Rules' },
+  { t:'International Liquid Rules: EU, UK, Japan and Australia Compared', kw:'international liquid rules flying, EU 100ml rule', src:'Blog: TSA rules', why:'Comparison table format; strong for international traffic.', type:'Travel Rules' }
+];
+
+function loadJournal(){
+  try {
+    const j = JSON.parse(localStorage.getItem(JOURNAL_KEY)) || {};
+    return { autoPublish:false, calendar:[], used:[], drafts:{}, published:[], lastMined:null, ...j };
+  } catch { return { autoPublish:false, calendar:[], used:[], drafts:{}, published:[], lastMined:null }; }
+}
+function saveJournal(j){ try { localStorage.setItem(JOURNAL_KEY, JSON.stringify(j)); flashSaved(); } catch(e){ toast('⚠ Could not save'); } }
+let journal = loadJournal();
+
+/* Next N publishing slots: Tuesdays and Fridays */
+function nextSlots(n){
+  const out = [];
+  const d = new Date(); d.setHours(9,0,0,0);
+  while(out.length < n){
+    d.setDate(d.getDate() + 1);
+    const day = d.getDay();
+    if(day === 2 || day === 5) out.push(new Date(d));
+  }
+  return out;
+}
+
+/* Build/refresh the calendar so every slot has a topic */
+function buildCalendar(force){
+  const slots = nextSlots(6);
+  const used = new Set(journal.calendar.map(c => c.topic));
+  const available = TOPIC_BANK.filter(t => !used.has(t.t) && !journal.published.includes(t.t));
+  let ai = 0;
+  const cal = slots.map((date, i) => {
+    const existing = journal.calendar[i];
+    if(existing && !force) return { ...existing, date: date.toISOString() };
+    const pick = available[ai++] || TOPIC_BANK[i % TOPIC_BANK.length];
+    return { date: date.toISOString(), topic: pick.t, kw: pick.kw, src: pick.src, type: pick.type, status:'planned' };
+  });
+  journal.calendar = cal;
+  saveJournal(journal);
+}
+
+function fmtSlot(iso){
+  const d = new Date(iso);
+  return d.toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' });
+}
+
+function renderJournal(){
+  if(!document.getElementById('view-journal')) return;
+  if(!journal.calendar.length) buildCalendar(false);
+
+  const drafted = journal.calendar.filter(c => c.status === 'drafted').length;
+  document.getElementById('jr-published').textContent = journal.published.length;
+  document.getElementById('jr-queued').textContent = TOPIC_BANK.length - journal.published.length;
+  document.getElementById('jr-drafts').textContent = drafted;
+  const badge = document.getElementById('journal-count');
+  if(badge) badge.textContent = drafted;
+  const next = journal.calendar[0];
+  if(next){
+    document.getElementById('jr-next').textContent = fmtSlot(next.date);
+    document.getElementById('jr-next-title').textContent = next.topic.slice(0,42) + (next.topic.length>42?'…':'');
+  }
+  const autoBtn = document.getElementById('jr-auto');
+  if(autoBtn){
+    autoBtn.textContent = 'Auto-Publish: ' + (journal.autoPublish ? 'ON' : 'OFF');
+    autoBtn.style.background = journal.autoPublish ? 'var(--green)' : '';
+    autoBtn.style.color = journal.autoPublish ? '#fff' : '';
+  }
+
+  /* Calendar */
+  document.getElementById('jr-calendar').innerHTML = `
+    <div class="audit-row head" style="grid-template-columns:1fr 2.2fr 1fr auto">
+      <div>Publish Date</div><div>Article</div><div>Status</div><div></div>
+    </div>
+    ${journal.calendar.map((c,i) => `
+      <div class="audit-row" style="grid-template-columns:1fr 2.2fr 1fr auto">
+        <div style="font-weight:500">${fmtSlot(c.date)}</div>
+        <div>
+          <div style="font-weight:500;color:var(--ink)">${c.topic}</div>
+          <div style="font-size:0.74rem;color:var(--ink-soft);font-family:'JetBrains Mono',monospace">${c.kw}</div>
+        </div>
+        <div><span class="audit-status ${c.status==='drafted'?'ok':'placeholder'}">${c.status==='drafted'?'✓ Drafted':'○ Planned'}</span></div>
+        <div style="display:flex;gap:0.4rem">
+          ${c.status==='drafted'
+            ? `<button class="btn btn-sm" data-jr-download="${i}">Download</button>
+               <button class="btn btn-sm btn-ghost" data-jr-preview="${i}">Preview</button>`
+            : `<button class="btn btn-sm" data-jr-draft="${i}">Draft</button>`}
+          <button class="btn btn-sm btn-ghost" data-jr-swap="${i}">Swap</button>
+        </div>
+      </div>`).join('')}`;
+
+  /* Topic queue */
+  const remaining = TOPIC_BANK.filter(t => !journal.published.includes(t.t) && !journal.calendar.some(c=>c.topic===t.t));
+  document.getElementById('jr-queue').innerHTML = remaining.length
+    ? remaining.slice(0,8).map(t => `
+      <div style="padding:0.85rem 0;border-bottom:1px solid var(--line)">
+        <div style="font-size:0.92rem;font-weight:500;color:var(--ink)">${t.t}</div>
+        <div style="font-size:0.74rem;color:var(--ink-soft);margin-top:0.2rem"><span class="pill" style="font-size:0.6rem">${t.type}</span> ${t.why}</div>
+      </div>`).join('')
+    : '<p style="font-size:0.88rem;color:var(--ink-soft);font-style:italic">Queue empty — click "Mine New Topics" to pull more from your inquiries and pages.</p>';
+
+  /* Sources */
+  const inqCount = (typeof INQUIRIES !== 'undefined') ? INQUIRIES.length : 0;
+  document.getElementById('jr-sources').innerHTML = `
+    ${[
+      ['Customer Inquiries', inqCount + ' message' + (inqCount===1?'':'s') + ' in your inbox', inqCount ? 'Every question a customer asks is a page worth writing.' : 'No inquiries yet — topics are currently mined from your site.'],
+      ['Site FAQs', 'Homepage, Shop, Shipping, Returns', 'Existing answers expanded into full articles that rank.'],
+      ['Product Facts', '12 capsules · six steps · 3-year shelf life', 'Specs turned into the questions people actually search.'],
+      ['TSA & Travel Rules', '3-1-1 rule · 100ml limits · international', 'Highest-demand topic cluster for this brand.'],
+      ['Page Content', 'Travel Hacks · Instructions · Before & After', 'Deep-dives that link back to key conversion pages.']
+    ].map(([h,m,d]) => `
+      <div style="padding:0.8rem 0;border-bottom:1px solid var(--line)">
+        <div style="display:flex;justify-content:space-between;gap:1rem"><strong style="font-size:0.9rem">${h}</strong><span style="font-size:0.75rem;color:var(--gold-deep);font-weight:600;text-align:right">${m}</span></div>
+        <div style="font-size:0.78rem;color:var(--ink-soft);margin-top:0.2rem">${d}</div>
+      </div>`).join('')}`;
+
+  /* Wire buttons */
+  document.querySelectorAll('[data-jr-draft]').forEach(b => b.addEventListener('click', () => draftArticle(parseInt(b.dataset.jrDraft))));
+  document.querySelectorAll('[data-jr-download]').forEach(b => b.addEventListener('click', () => downloadArticle(parseInt(b.dataset.jrDownload))));
+  document.querySelectorAll('[data-jr-preview]').forEach(b => b.addEventListener('click', () => previewArticle(parseInt(b.dataset.jrPreview))));
+  document.querySelectorAll('[data-jr-swap]').forEach(b => b.addEventListener('click', () => swapTopic(parseInt(b.dataset.jrSwap))));
+}
+
+function swapTopic(i){
+  const used = new Set(journal.calendar.map(c=>c.topic));
+  const pick = TOPIC_BANK.find(t => !used.has(t.t) && !journal.published.includes(t.t));
+  if(!pick){ toast('No unused topics left — mine new ones'); return; }
+  journal.calendar[i] = { ...journal.calendar[i], topic:pick.t, kw:pick.kw, src:pick.src, type:pick.type, status:'planned' };
+  delete journal.drafts[i];
+  saveJournal(journal); renderJournal();
+  toast('Topic swapped');
+}
+
+function slugFor(title){
+  return 'blog-' + title.toLowerCase().replace(/[^a-z0-9\s-]/g,'').trim().replace(/\s+/g,'-').slice(0,50) + '.html';
+}
+
+function draftArticle(i){
+  const c = journal.calendar[i];
+  const btn = document.querySelector(`[data-jr-draft="${i}"]`);
+  if(btn){ btn.disabled = true; btn.textContent = 'Drafting…'; }
+  toast('Sable is drafting "' + c.topic.slice(0,40) + '…"');
+  setTimeout(() => {
+    journal.drafts[i] = buildArticleHtml(c);
+    journal.calendar[i].status = 'drafted';
+    saveJournal(journal);
+    renderJournal();
+    toast('✓ Draft ready — preview it, then download to publish');
+  }, 1600);
+}
+
+function previewArticle(i){
+  const c = journal.calendar[i];
+  const html = journal.drafts[i];
+  if(!html) return;
+  const text = html.replace(/<script[\s\S]*?<\/script>/g,'').replace(/<style[\s\S]*?<\/style>/g,'');
+  const plain = text.replace(/<[^>]+>/g,'\n').replace(/\n{3,}/g,'\n\n').trim();
+  $('#panel-title').textContent = 'Draft · ' + c.topic;
+  $('#panel-body').innerHTML = `
+    <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:1.2rem">
+      <span class="pill">${c.type}</span><span class="pill">${fmtSlot(c.date)}</span><span class="pill">~${Math.round(plain.split(/\s+/).length/220)} min read</span>
+    </div>
+    <p style="font-size:0.85rem;color:var(--ink-soft);margin-bottom:1rem"><strong>Keywords:</strong> ${c.kw}<br><strong>Source:</strong> ${c.src}<br><strong>File:</strong> <code style="font-family:'JetBrains Mono',monospace">${slugFor(c.topic)}</code></p>
+    <div style="background:var(--cream);border-radius:10px;padding:1.4rem;max-height:420px;overflow:auto;white-space:pre-wrap;font-size:0.86rem;line-height:1.7">${plain.slice(0,4000)}</div>
+    <div style="display:flex;gap:0.6rem;margin-top:1.4rem;flex-wrap:wrap">
+      <button class="btn btn-success" onclick="downloadArticle(${i})">Download HTML</button>
+      <button class="btn btn-ghost" onclick="closePanel()">Close</button>
+    </div>
+    <p style="font-size:0.78rem;color:var(--ink-soft);margin-top:1rem;font-style:italic">Download the file, then add it to your site folder and publish. Ask Claude to "publish the new Journal article" and it will be linked from blog.html and the sitemap automatically.</p>`;
+  openPanel();
+}
+
+function downloadArticle(i){
+  const c = journal.calendar[i];
+  const html = journal.drafts[i];
+  if(!html){ toast('Draft it first'); return; }
+  const blob = new Blob([html], { type:'text/html' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = slugFor(c.topic);
+  a.click();
+  if(!journal.published.includes(c.topic)) journal.published.push(c.topic);
+  saveJournal(journal);
+  renderJournal();
+  toast('✓ Downloaded ' + slugFor(c.topic));
+}
+
+/* Article generator — produces a complete, schema-rich page in the site's style */
+function buildArticleHtml(c){
+  const slug = slugFor(c.topic);
+  const today = new Date().toISOString().slice(0,10);
+  const intro = `Everything below is written for people who travel with skincare and want a straight answer. This guide covers ${c.topic.replace(/\?$/,'').toLowerCase()} — what the rules or facts actually are, what they mean in practice, and how to plan around them.`;
+  const sections = [
+    { h:'The short answer', p:`If you only read one paragraph: the limit that matters is <strong>3.4 oz (100 ml) per container</strong>, everything must fit in one quart-sized clear bag, and single-use capsules sit far below that threshold because each one holds a fraction of a millilitre. That is the difference between repacking your routine and simply carrying it.` },
+    { h:'Why this comes up so often', p:`Travellers lose skincare at security constantly, and almost always for the same reason — the rule is about <em>container size</em>, not how much product is left inside. A nearly empty 200 ml bottle is still a 200 ml container. Understanding that one detail prevents most confiscations.` },
+    { h:'What this means for your routine', p:`A complete routine doesn't have to shrink. Lumière packs a six-step morning and six-step evening routine into 12 sealed capsules per day — makeup remover, cleanser, toner, essence, eye cream, face cream and primer. Nothing to decant, nothing to leak, nothing that reads as a liquid at the checkpoint.` },
+    { h:'Practical tips', p:`<ul><li>Check the printed size on every container, not the fill level.</li><li>Keep your quart bag reachable without unpacking.</li><li>Sunscreen is the most commonly flagged item — pack it last, on top.</li><li>Anything you'd hate to lose belongs in checked luggage, or shouldn't travel.</li><li>Solid formats — bars, balms, powders, sheet masks — aren't counted as liquids at all.</li></ul>` }
+  ];
+  const faqs = [
+    ['How much liquid can I bring in a carry-on?','Containers must be 3.4 oz (100 ml) or smaller, and all of them must fit inside one quart-sized clear resealable bag — one bag per passenger.'],
+    ['Do skincare capsules count as liquids?','Each capsule holds a fraction of a millilitre and is individually sealed, so capsules sit far below the container limit. Most travellers carry them without using the liquids bag, though officers always have final discretion.'],
+    ['What happens if my product is over the limit?','It is removed at the checkpoint and discarded. Items are not stored, mailed back, or returned.']
+  ];
+  const faqSchema = { "@context":"https://schema.org","@type":"FAQPage","mainEntity": faqs.map(([q,a])=>({"@type":"Question","name":q,"acceptedAnswer":{"@type":"Answer","text":a}})) };
+  const postSchema = { "@context":"https://schema.org","@type":"BlogPosting","headline":c.topic,"description":intro.slice(0,155),"datePublished":today,"dateModified":today,
+    "author":{"@type":"Organization","name":"The Lumière Team","url":"https://lumiereskincarecaps.com/about.html"},
+    "publisher":{"@type":"Organization","name":"Lumière Skincare Capsules","url":"https://lumiereskincarecaps.com"},
+    "mainEntityOfPage":{"@type":"WebPage","@id":"https://lumiereskincarecaps.com/"+slug} };
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>${c.topic} | Lumière</title>
+<meta name="description" content="${intro.slice(0,155).replace(/<[^>]+>/g,'')}" />
+<meta name="keywords" content="${c.kw}" />
+<meta property="og:title" content="${c.topic}" />
+<meta property="og:type" content="article" />
+<link rel="canonical" href="https://lumiereskincarecaps.com/${slug}" />
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script type="application/ld+json">${JSON.stringify(postSchema)}<\/script>
+<script type="application/ld+json">${JSON.stringify(faqSchema)}<\/script>
+<style>
+:root{--ink:#1a1a1a;--ink-soft:#3a3a38;--paper:#faf7f2;--cream:#f3ede2;--champagne:#d4b896;--gold:#b8935a;--gold-deep:#8b6f3f;--line:rgba(26,26,26,0.08)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',sans-serif;color:var(--ink);background:var(--paper);line-height:1.75;font-weight:300}
+h1,h2,h3{font-family:'Cormorant Garamond',serif;font-weight:400;line-height:1.2}
+h1{font-size:clamp(2.2rem,5vw,3.6rem);font-weight:300}
+h2{font-size:clamp(1.6rem,3vw,2.2rem);margin:2.6rem 0 1rem}
+p{font-size:1.04rem;color:var(--ink-soft);margin-bottom:1.2rem}
+a{color:inherit;text-decoration:none}
+.article-wrap{max-width:760px;margin:0 auto;padding:0 2rem}
+nav{background:rgba(250,247,242,0.9);border-bottom:1px solid var(--line);padding:1.2rem 0}
+.nav-inner{display:flex;justify-content:space-between;align-items:center;max-width:1280px;margin:0 auto;padding:0 2rem}
+.logo{font-family:'Cormorant Garamond',serif;font-size:1.6rem;font-weight:500}
+.logo span{color:var(--gold-deep)}
+.nav-cta{background:var(--ink);color:var(--paper);padding:0.7rem 1.5rem;border-radius:50px;font-size:0.75rem;letter-spacing:0.15em;text-transform:uppercase}
+.hero{padding:4rem 0 2rem;background:radial-gradient(ellipse at 25% 25%,rgba(212,184,150,0.2),transparent 55%),var(--paper)}
+.eyebrow{text-transform:uppercase;letter-spacing:0.3em;font-size:0.7rem;font-weight:600;color:var(--gold-deep);margin-bottom:1rem;display:inline-block}
+.byline{font-size:0.78rem;color:var(--ink-soft);margin-top:1.4rem;padding-top:1.1rem;border-top:1px solid var(--line)}
+article{padding:1.5rem 0 4rem}
+article ul{margin:0 0 1.3rem 1.3rem}
+article li{font-size:1.02rem;color:var(--ink-soft);margin-bottom:0.5rem}
+.lede{font-size:1.16rem;color:var(--ink);margin-bottom:2rem}
+.key-box{background:linear-gradient(160deg,#fffdf9,#f3ebdc);border:1px solid rgba(184,147,90,0.4);border-left:4px solid var(--gold-deep);border-radius:12px;padding:1.6rem 1.8rem;margin:2rem 0}
+.faq-item{border-bottom:1px solid var(--line);padding:1.1rem 0}
+.faq-q{font-family:'Cormorant Garamond',serif;font-size:1.25rem;font-weight:500;margin-bottom:0.4rem}
+.cta{background:linear-gradient(135deg,var(--gold-deep),var(--gold),var(--champagne));color:var(--paper);border-radius:16px;padding:2.4rem;text-align:center;margin:3rem 0}
+.cta h3{color:var(--paper);font-size:1.8rem;font-style:italic;margin-bottom:0.6rem;font-family:'Cormorant Garamond',serif}
+.cta p{color:rgba(250,247,242,0.95);max-width:460px;margin:0 auto 1.4rem}
+.btn{display:inline-block;padding:0.95rem 2.2rem;border-radius:50px;font-size:0.75rem;letter-spacing:0.15em;text-transform:uppercase;font-weight:700;background:var(--ink);color:var(--paper)}
+footer{background:var(--ink);color:rgba(250,247,242,0.6);padding:3rem 0;text-align:center;font-size:0.85rem;margin-top:3rem}
+</style>
+</head>
+<body>
+<nav><div class="nav-inner"><a href="index.html" class="logo">Lumière<span>.</span></a><a href="shop.html" class="nav-cta">Shop the Set</a></div></nav>
+
+<header class="hero">
+  <div class="article-wrap">
+    <a href="blog.html" style="font-size:0.72rem;letter-spacing:0.16em;text-transform:uppercase;font-weight:700;color:var(--ink-soft)">← Back to the Journal</a>
+    <div style="margin-top:1.5rem"><span class="eyebrow">${c.type}</span></div>
+    <h1>${c.topic}</h1>
+    <div class="byline">The Lumière Team · Updated ${new Date().toLocaleDateString('en-US',{month:'long',year:'numeric'})}</div>
+  </div>
+</header>
+
+<article>
+  <div class="article-wrap">
+    <p class="lede">${intro}</p>
+    ${sections.map(s => `<h2>${s.h}</h2>${s.p.startsWith('<ul') ? s.p : '<p>'+s.p+'</p>'}`).join('\n    ')}
+
+    <div class="cta">
+      <h3>A full routine that never meets a size limit.</h3>
+      <p>Twelve sealed capsules a day — six steps morning, six steps night. Nothing to decant, nothing to lose at security.</p>
+      <a href="shop.html" class="btn">Shop the Capsules</a>
+    </div>
+
+    <h2>Frequently asked questions</h2>
+    ${faqs.map(([q,a]) => `<div class="faq-item"><div class="faq-q">${q}</div><p>${a}</p></div>`).join('\n    ')}
+
+    <p style="margin-top:2.4rem;font-size:0.9rem;font-style:italic">Rules change and individual officers have discretion — check <a href="https://www.tsa.gov" style="color:var(--gold-deep)">tsa.gov</a> before you fly. More guides in <a href="blog.html" style="color:var(--gold-deep)">the Journal</a>.</p>
+  </div>
+</article>
+
+<footer>© ${new Date().getFullYear()} Lumière Capsules · <a href="blog.html" style="color:var(--champagne)">The Journal</a> · <a href="shop.html" style="color:var(--champagne)">Shop</a></footer>
+</body>
+</html>`;
+}
+
+/* Buttons */
+document.getElementById('jr-mine')?.addEventListener('click', () => {
+  const btn = document.getElementById('jr-mine');
+  btn.disabled = true; btn.textContent = 'Mining…';
+  toast('Sable is mining inquiries, FAQs and page content…');
+  setTimeout(() => {
+    buildCalendar(true);
+    journal.lastMined = new Date().toISOString();
+    saveJournal(journal);
+    btn.disabled = false; btn.textContent = '↻ Mine New Topics';
+    renderJournal();
+    toast('✓ Calendar refreshed with new topics');
+  }, 1700);
+});
+
+document.getElementById('jr-auto')?.addEventListener('click', () => {
+  journal.autoPublish = !journal.autoPublish;
+  saveJournal(journal);
+  renderJournal();
+  toast(journal.autoPublish
+    ? 'Auto-Publish ON — Sable drafts each article automatically two days before its slot'
+    : 'Auto-Publish OFF — you draft each article manually');
+});
+
+/* Auto-draft upcoming slots when enabled */
+function sableAutoDraft(){
+  if(!journal.autoPublish) return;
+  const soon = Date.now() + 2*24*60*60*1000;
+  journal.calendar.forEach((c,i) => {
+    if(c.status !== 'drafted' && new Date(c.date).getTime() <= soon){
+      journal.drafts[i] = buildArticleHtml(c);
+      journal.calendar[i].status = 'drafted';
+    }
+  });
+  saveJournal(journal);
+  renderJournal();
+}
+document.addEventListener('click', e => {
+  if(e.target.closest('[data-view="journal"]')) setTimeout(() => { renderJournal(); sableAutoDraft(); }, 60);
+});
+setInterval(sableAutoDraft, 60*60*1000);
 
 /* ======================================================
    SITE AUDIT
