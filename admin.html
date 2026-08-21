@@ -691,7 +691,7 @@
               <button class="btn" id="seo-rescan">Re-Scan All Pages</button>
               <button class="btn btn-ghost" id="vesper-auto">Auto-Optimize: OFF</button>
             </div>
-            <p style="font-size:0.78rem;color:var(--ink-soft);margin-top:0.8rem;font-style:italic">Auto-Optimize lets Vesper apply corrections automatically whenever a new algorithm update lands.</p>
+            <p style="font-size:0.78rem;color:var(--ink-soft);margin-top:0.8rem;font-style:italic">Pages re-scan automatically every 7 days — no clicking needed. Auto-Optimize lets Vesper also apply the corrections it finds.</p>
           </div>
           <div class="card">
             <div class="card-head"><h3>Google Algorithm Knowledge</h3>
@@ -1728,9 +1728,14 @@ function openRefund(id){
    SEO AGENT (Vesper) — audit, fixes & algorithm updates
    ====================================================== */
 const VESPER_KEY = 'lumiere_vesper';
+const VESPER_DEFAULTS = { autoFix:false, autoUpdate:true, fixed:{}, scores:{}, applied:{}, lastScan:null, lastAlgoCheck:null, lastWeeklyScan:null };
 function loadVesper(){
-  try { return JSON.parse(localStorage.getItem(VESPER_KEY)) || { autoFix:false, fixed:{}, scores:{}, applied:{}, lastScan:null }; }
-  catch { return { autoFix:false, fixed:{}, scores:{}, applied:{}, lastScan:null }; }
+  let v;
+  try { v = JSON.parse(localStorage.getItem(VESPER_KEY)) || {}; }
+  catch { v = {}; }
+  v = { ...VESPER_DEFAULTS, ...v };
+  v.autoUpdate = true;   // Algorithm Auto-Update is always on
+  return v;
 }
 function saveVesper(v){ localStorage.setItem(VESPER_KEY, JSON.stringify(v)); }
 let vesper = loadVesper();
@@ -1758,11 +1763,21 @@ function renderSEO(){
   }).join('');
   document.querySelectorAll('[data-seo-page]').forEach(b => b.addEventListener('click', () => openSeoDetails(b.dataset.seoPage)));
 
-  if(vesper.lastScan) { const el = $('#seo-last-scan'); if(el) el.textContent = 'Last scanned: ' + vesper.lastScan; }
+  if(vesper.lastScan) {
+    const el = $('#seo-last-scan');
+    if(el){
+      let txt = 'Last scanned: ' + vesper.lastScan;
+      if(vesper.lastWeeklyScan){
+        const next = new Date(new Date(vesper.lastWeeklyScan).getTime() + 7*24*60*60*1000);
+        txt += ' · next auto-scan ' + next.toLocaleDateString();
+      }
+      el.textContent = txt;
+    }
+  }
   const autoBtn = $('#vesper-auto');
   if(autoBtn){ autoBtn.textContent = 'Auto-Optimize: ' + (vesper.autoFix ? 'ON' : 'OFF'); autoBtn.style.background = vesper.autoFix ? 'var(--green)' : ''; autoBtn.style.color = vesper.autoFix ? '#fff' : ''; }
   const algoAutoBtn = $('#algo-auto');
-  if(algoAutoBtn){ algoAutoBtn.textContent = 'Auto-Update: ' + (vesper.autoUpdate ? 'ON' : 'OFF'); algoAutoBtn.style.background = vesper.autoUpdate ? 'var(--green)' : ''; algoAutoBtn.style.color = vesper.autoUpdate ? '#fff' : ''; }
+  if(algoAutoBtn){ algoAutoBtn.textContent = 'Auto-Update: ON'; algoAutoBtn.style.background = 'var(--green)'; algoAutoBtn.style.color = '#fff'; algoAutoBtn.title = 'Always on — Vesper checks daily. Click to run a check now.'; }
   const checkMeta = $('#algo-check-meta');
   if(checkMeta && vesper.lastAlgoCheck){
     checkMeta.textContent = 'Auto-Update ' + (vesper.autoUpdate ? 'ON — checks daily. ' : 'OFF. ') + 'Last algorithm check: ' + new Date(vesper.lastAlgoCheck).toLocaleString();
@@ -1902,28 +1917,46 @@ document.getElementById('algo-apply')?.addEventListener('click', () => {
 });
 
 document.getElementById('algo-auto')?.addEventListener('click', () => {
-  vesper.autoUpdate = !vesper.autoUpdate;
-  saveVesper(vesper);
-  renderSEO();
-  if(vesper.autoUpdate){
-    toast('Auto-Update ON — Vesper will check daily and apply new algorithm changes');
-    setTimeout(() => applyLatestAlgoUpdates(true), 1500);
-  } else {
-    toast('Auto-Update OFF — algorithm changes will wait for your manual apply');
-  }
+  // Always-on by design — clicking simply runs a check now
+  toast('Auto-Update is always on — running a check now…');
+  setTimeout(() => applyLatestAlgoUpdates(true), 800);
 });
 
-/* Daily auto-check simulation: runs when the SEO tab is opened */
+/* Daily algorithm auto-check (always on) */
 function vesperAutoCheck(){
-  if(!vesper.autoUpdate) return;
   const last = vesper.lastAlgoCheck ? new Date(vesper.lastAlgoCheck) : null;
   if(!last || (Date.now() - last.getTime()) > 24*60*60*1000){
     setTimeout(() => applyLatestAlgoUpdates(true), 1200);
   }
 }
+
+/* Weekly automatic full-site re-scan — runs itself, no clicking required */
+const WEEK_MS = 7*24*60*60*1000;
+function vesperWeeklyScan(force){
+  const last = vesper.lastWeeklyScan ? new Date(vesper.lastWeeklyScan) : null;
+  if(!force && last && (Date.now() - last.getTime()) < WEEK_MS) return;
+  const btn = document.getElementById('seo-rescan');
+  if(btn){ btn.disabled = true; btn.textContent = 'Weekly scan running…'; }
+  toast('Vesper is running the weekly site scan…');
+  setTimeout(() => {
+    PAGES_AUDIT.forEach(p => { vesper.scores[p.name] = Math.min(100, pageScore(p) + 1); });
+    vesper.lastScan = 'just now (weekly auto-scan)';
+    vesper.lastWeeklyScan = new Date().toISOString();
+    saveVesper(vesper);
+    if(btn){ btn.disabled = false; btn.textContent = 'Re-Scan All Pages'; }
+    renderSEO();
+    toast('✓ Weekly auto-scan complete — next scan in 7 days');
+  }, 1800);
+}
+
+/* Run both checks when the SEO tab opens, and on a live timer while the page stays open */
 document.addEventListener('click', e => {
-  if(e.target.closest('[data-view="seo"]')) setTimeout(vesperAutoCheck, 300);
+  if(e.target.closest('[data-view="seo"]')){
+    setTimeout(() => { vesperAutoCheck(); vesperWeeklyScan(false); }, 400);
+  }
 });
+setInterval(() => { vesperAutoCheck(); vesperWeeklyScan(false); }, 60*60*1000); // hourly eligibility check
+document.addEventListener('DOMContentLoaded', () => setTimeout(() => { vesperAutoCheck(); vesperWeeklyScan(false); }, 2500));
 
 /* ======================================================
    SITE AUDIT
