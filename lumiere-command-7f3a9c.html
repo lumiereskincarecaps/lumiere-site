@@ -1133,6 +1133,16 @@
           </div>
         </div>
 
+        <!-- PUBLISH TO SITE -->
+        <div class="card" style="margin-bottom:1.5rem;border:1px solid var(--amber);background:#fff8e6">
+          <div class="card-head">
+            <h3 style="color:#7a5518">⚠ Publish Images So Everyone Can See Them</h3>
+            <button class="btn btn-sm" id="publish-images">↑ Publish All Images to Site</button>
+          </div>
+          <p style="font-size:0.88rem;color:#7a5518;margin-bottom:0.6rem">Uploaded images are stored <strong>in this browser only</strong> — they show for you, but visitors on other devices and phones see empty placeholders. Publishing commits them as real files to your site so they appear for everyone.</p>
+          <div id="publish-images-status" style="font-size:0.85rem"></div>
+        </div>
+
         <!-- Bulk Upload Zone -->
         <div class="upload-zone" id="bulk-zone">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
@@ -4567,6 +4577,97 @@ seedInitialLogs();
 let currentUploadSlot = null;
 let currentUploadFile = null;
 
+/* =========================================================
+   PUBLISH IMAGES TO THE LIVE SITE
+   Commits every browser-stored image as a real file under img/
+   and writes img/manifest.json so all pages load them.
+   ========================================================= */
+function dataUrlToBase64(dataUrl){ return dataUrl.split(',')[1] || ''; }
+function extFromDataUrl(dataUrl){
+  const m = /^data:image\/([a-z0-9+]+);/i.exec(dataUrl || '');
+  const t = (m ? m[1] : 'png').toLowerCase();
+  return t === 'jpeg' ? 'jpg' : t === 'svg+xml' ? 'svg' : t;
+}
+/* Commit raw base64 without re-encoding (images are already base64) */
+async function ghPutRaw(path, base64, message, sha){
+  const g = loadGh();
+  const body = { message, content: base64, branch: g.branch };
+  if(sha) body.sha = sha;
+  const r = await fetch(`https://api.github.com/repos/${g.owner}/${g.repo}/contents/${path}`, {
+    method:'PUT',
+    headers:{ Authorization:'token '+g.token, Accept:'application/vnd.github+json', 'Content-Type':'application/json' },
+    body: JSON.stringify(body)
+  });
+  if(!r.ok){ const e = await r.text(); throw new Error(r.status + ' ' + e.slice(0,120)); }
+  return r.json();
+}
+
+document.getElementById('publish-images')?.addEventListener('click', async () => {
+  if(typeof ghReady !== 'function' || !ghReady()){
+    toast('Connect GitHub in the Journal tab first — Vesper needs it to publish files');
+    return;
+  }
+  const btn = document.getElementById('publish-images');
+  const status = document.getElementById('publish-images-status');
+  btn.disabled = true; btn.textContent = 'Publishing…';
+  try {
+    const all = await Lumiere.Images.list();
+    if(!all.length){ toast('No uploaded images to publish'); btn.disabled=false; btn.textContent='↑ Publish All Images to Site'; return; }
+    const seo = (typeof loadImgSeo === 'function') ? loadImgSeo() : {};
+    let manifest = {};
+    try {
+      const existing = await ghGet('img/manifest.json');
+      if(existing) manifest = JSON.parse(unb64(existing.content));
+    } catch(e){}
+
+    let done = 0;
+    for(const img of all){
+      if(img.id === 'site-logo' && false) continue;
+      const ext = extFromDataUrl(img.dataUrl);
+      const nice = (seo[img.id] && seo[img.id].filename) ? seo[img.id].filename : img.id;
+      const path = `img/${nice}.${ext}`;
+      status.innerHTML = `Publishing <strong>${img.id}</strong> (${done+1} of ${all.length})…`;
+      let sha = null;
+      try { const ex = await ghGet(path); if(ex) sha = ex.sha; } catch(e){}
+      await ghPutRaw(path, dataUrlToBase64(img.dataUrl), 'Images: publish ' + img.id, sha);
+      manifest[img.id] = path;
+      done++;
+    }
+
+    // Write the manifest so every page can find them
+    let mSha = null;
+    try { const ex = await ghGet('img/manifest.json'); if(ex) mSha = ex.sha; } catch(e){}
+    await ghPut('img/manifest.json', JSON.stringify(manifest, null, 2), 'Images: update manifest', mSha);
+
+    status.innerHTML = `<span style="color:var(--green);font-weight:600">✓ ${done} image${done===1?'':'s'} published.</span> Live for all visitors in about a minute.`;
+    addLog && addLog('success', '🖼 Published ' + done + ' images to the site');
+    toast('✓ ' + done + ' images published — visible on every device');
+  } catch(err){
+    console.error(err);
+    status.innerHTML = `<span style="color:var(--red)">⚠ ${err.message}</span>`;
+    toast('⚠ ' + err.message);
+  } finally {
+    btn.disabled = false; btn.textContent = '↑ Publish All Images to Site';
+  }
+});
+
+/* Show how many images are published vs browser-only */
+async function renderPublishStatus(){
+  const status = document.getElementById('publish-images-status');
+  if(!status || status.dataset.busy) return;
+  try {
+    const local = await Lumiere.Images.list();
+    const man = await Lumiere.Images.published();
+    const published = Object.keys(man || {}).length;
+    const unpublished = local.filter(i => !man[i.id]).length;
+    status.innerHTML = unpublished
+      ? `<strong>${unpublished}</strong> image${unpublished===1?'':'s'} not published yet — invisible to visitors. ${published} already live.`
+      : published
+      ? `<span style="color:var(--green);font-weight:600">✓ All ${published} images are published and visible to everyone.</span>`
+      : 'No images uploaded yet.';
+  } catch(e){}
+}
+
 /* ===== IMAGE SEO METADATA (alt text, caption, title, filename) ===== */
 const IMG_SEO_KEY = 'lumiere_image_seo';
 function loadImgSeo(){ try { return JSON.parse(localStorage.getItem(IMG_SEO_KEY)) || {}; } catch { return {}; } }
@@ -4882,6 +4983,7 @@ document.addEventListener('click', e => {
 
 // Initial render if tab is already visible
 if(document.getElementById('view-images')?.classList.contains('active')) renderImages();
+document.addEventListener('click', e => { if(e.target.closest('[data-view="images"]')) setTimeout(renderPublishStatus, 200); });
 // Always render once so counts are accurate even when not on tab
 renderImages();
 </script>

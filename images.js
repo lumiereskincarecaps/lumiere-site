@@ -236,6 +236,20 @@
     document.head.appendChild(s);
   }
 
+  /* ---------- PUBLISHED IMAGE MANIFEST ----------
+     img/manifest.json maps slot IDs to real files committed to the site.
+     These work for every visitor on every device. Browser uploads are only
+     a preview until they're published. */
+  let MANIFEST = null;
+  async function loadManifest(){
+    if(MANIFEST !== null) return MANIFEST;
+    try {
+      const r = await fetch('img/manifest.json', { cache:'no-cache' });
+      MANIFEST = r.ok ? await r.json() : {};
+    } catch(e){ MANIFEST = {}; }
+    return MANIFEST;
+  }
+
   /* ---------- IMAGE SEO METADATA ---------- */
   const IMG_SEO_KEY = 'lumiere_image_seo';
   function getSeo(slotId){
@@ -251,6 +265,9 @@
     const all = await listImages();
     const map = {};
     all.forEach(img => map[img.id] = img.dataUrl);
+    // Published files take priority so every visitor sees them
+    const man = await loadManifest();
+    Object.keys(man || {}).forEach(id => { map[id] = man[id]; });
     slots.forEach(el => {
       const id = el.dataset.slot;
       const url = map[id];
@@ -357,7 +374,9 @@
       broadcast(slotId);
       return true;
     },
-    applyToPage
+    applyToPage,
+    manifest: loadManifest,
+    async published(){ return loadManifest(); }
   };
 
   // Auto-apply on page load
