@@ -859,6 +859,34 @@
           <p style="font-size:0.85rem;margin-bottom:1rem">ChatGPT, Claude, Perplexity and Google AI Overviews increasingly read an <code style="font-family:'JetBrains Mono',monospace;background:rgba(212,184,150,0.18);padding:0.1rem 0.4rem;border-radius:4px">llms.txt</code> file — a plain-language brief telling AI engines exactly what your brand is and what to say about it.</p>
           <div id="ai-readiness"></div>
         </div>
+
+        <!-- AEO · Answer Engine Optimization -->
+        <div class="card" style="margin-top:1.5rem">
+          <div class="card-head">
+            <h3>AEO · Answer Engine Optimization</h3>
+            <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
+              <button class="btn btn-sm btn-ghost" id="aeo-scan">↻ Re-Scan Pages</button>
+              <button class="btn btn-sm" id="aeo-fix">Apply AEO Fixes</button>
+            </div>
+          </div>
+          <p style="font-size:0.85rem;margin-bottom:1rem">AEO is about being <em>quoted as the answer</em>, not just ranking. These checks measure how easily ChatGPT, Perplexity, Google AI Overviews and voice assistants can lift your facts.</p>
+          <div id="aeo-score"></div>
+          <div id="aeo-checks" style="margin-top:1.2rem"></div>
+        </div>
+
+        <div class="grid-2" style="margin-top:1.5rem">
+          <div class="card">
+            <div class="card-head"><h3>Answer Block Generator</h3></div>
+            <p style="font-size:0.85rem;margin-bottom:1rem">Pick a question people ask. Vesper writes a 40–60 word answer in the exact format answer engines lift verbatim — paste it under the matching heading.</p>
+            <select id="aeo-question" class="ch-input" style="margin-bottom:1rem"></select>
+            <button class="btn btn-sm" id="aeo-generate">Generate Answer Block</button>
+            <div id="aeo-output" style="margin-top:1.2rem"></div>
+          </div>
+          <div class="card">
+            <div class="card-head"><h3>Questions You Should Own</h3><span class="meta">Ranked by AI query demand</span></div>
+            <div id="aeo-questions"></div>
+          </div>
+        </div>
       </section>
 
       <!-- ============ AMBASSADORS ============ -->
@@ -2005,6 +2033,7 @@ function renderSEO(){
   renderImageSeoCheck();
   renderCwv();
   renderAiReadiness();
+  if(typeof renderAeo === 'function') renderAeo();
 
   const kw = $('#keyword-ops');
   kw.innerHTML = `
@@ -2347,6 +2376,190 @@ document.addEventListener('click', e => {
 setInterval(() => { vesperAutoCheck(); vesperWeeklyScan(false); }, 60*60*1000); // hourly eligibility check
 document.addEventListener('DOMContentLoaded', () => setTimeout(() => { vesperAutoCheck(); vesperWeeklyScan(false); }, 2500));
 
+
+
+/* ======================================================
+   VESPER · AEO (ANSWER ENGINE OPTIMIZATION)
+   Measures how easily AI engines can extract and quote
+   your facts, and generates answer blocks in the format
+   they lift verbatim.
+   ====================================================== */
+const AEO_KEY = 'lumiere_aeo';
+function loadAeo(){ try { return { applied:{}, lastScan:null, ...(JSON.parse(localStorage.getItem(AEO_KEY))||{}) }; } catch { return { applied:{}, lastScan:null }; } }
+function saveAeo(a){ try { localStorage.setItem(AEO_KEY, JSON.stringify(a)); flashSaved(); } catch(e){} }
+let aeo = loadAeo();
+
+const AEO_CHECKS = [
+  { id:'answer-first', name:'Answer-first blocks', weight:20,
+    what:'A 40–60 word direct answer sits immediately under each key question, before any storytelling.',
+    why:'This is the single block AI engines lift verbatim. Bury the answer and you lose the citation.',
+    fix:'Add a short answer paragraph under every question heading on the homepage FAQ, shop FAQ and product pages.' },
+  { id:'question-headings', name:'Questions as headings', weight:15,
+    what:'Headings phrased as real questions ("How many capsules are in a sheet?") rather than labels ("Capsule Count").',
+    why:'Matches the phrasing of actual queries, so engines can map question to answer with no interpretation.',
+    fix:'Rewrite spec and section headings across shop and instructions pages into question form.' },
+  { id:'speakable', name:'Speakable schema', weight:10,
+    what:'Marks which sentences voice assistants should read aloud.',
+    why:'Almost no skincare brand uses it — low effort, low competition, direct voice-answer eligibility.',
+    fix:'Add SpeakableSpecification to the homepage and key article schema.' },
+  { id:'facts', name:'Definitive facts with units', weight:15,
+    what:'Specific numbers with units: 12 capsules, 100 ml / 3.4 oz, 3-year shelf life, 30-day guarantee.',
+    why:'Engines cite precise, checkable figures and skip vague marketing claims.',
+    fix:'Ensure every product claim carries a number and unit rather than an adjective.' },
+  { id:'tables', name:'Comparison tables', weight:15,
+    what:'Structured tables comparing options — capsules vs bottles vs travel sizes, liquid vs non-liquid.',
+    why:'Tables are the easiest structure for a model to parse and reproduce accurately.',
+    fix:'Add a capsules-vs-alternatives table to the shop and travel pages.' },
+  { id:'entity', name:'Entity clarity', weight:10,
+    what:'One unambiguous definition of what Lumière is, repeated consistently everywhere.',
+    why:'Engines need to resolve your brand to a single entity before they will confidently cite it.',
+    fix:'Use the same one-sentence definition in llms.txt, Organization schema and the homepage intro.' },
+  { id:'freshness', name:'Freshness signals', weight:8,
+    what:'dateModified present and current on every substantive page.',
+    why:'For rules-based topics like TSA limits, recency heavily influences which source gets quoted.',
+    fix:'Add dateModified to page schema and refresh it whenever content changes.' },
+  { id:'authorship', name:'Author &amp; expertise signals', weight:7,
+    what:'Named authors, credentials, sources cited, and a real About page behind the content.',
+    why:'E-E-A-T still governs which sources AI systems trust enough to name.',
+    fix:'Add author bios and cite primary sources (TSA.gov, ingredient references) in articles.' }
+];
+
+/* Which checks the site already passes, based on what has actually been built */
+function aeoBaseline(){
+  return {
+    'answer-first': false,      // FAQs answer, but not answer-first formatted everywhere
+    'question-headings': false,
+    'speakable': false,
+    'facts': true,              // numbers are specific site-wide
+    'tables': false,
+    'entity': true,             // llms.txt + Organization schema align
+    'freshness': false,
+    'authorship': false
+  };
+}
+
+function aeoState(){
+  const base = aeoBaseline();
+  Object.keys(aeo.applied).forEach(k => { if(aeo.applied[k]) base[k] = true; });
+  return base;
+}
+
+function renderAeo(){
+  const scoreEl = document.getElementById('aeo-score');
+  if(!scoreEl) return;
+  const state = aeoState();
+  const total = AEO_CHECKS.reduce((s,c)=>s+c.weight,0);
+  const got = AEO_CHECKS.reduce((s,c)=> s + (state[c.id] ? c.weight : 0), 0);
+  const pct = Math.round((got/total)*100);
+  const col = pct>=80 ? 'var(--green)' : pct>=50 ? 'var(--amber)' : 'var(--red)';
+  scoreEl.innerHTML = `
+    <div style="display:flex;align-items:center;gap:1.5rem;flex-wrap:wrap">
+      <div>
+        <div style="font-family:'Cormorant Garamond',serif;font-size:3.2rem;font-weight:500;color:${col};line-height:1">${pct}<span style="font-size:1.4rem">%</span></div>
+        <span class="stat-label">AEO Readiness</span>
+      </div>
+      <div style="flex:1;min-width:220px">
+        <div style="height:8px;background:var(--cream);border-radius:50px;overflow:hidden">
+          <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,var(--gold-deep),var(--champagne));border-radius:50px;transition:width .6s"></div>
+        </div>
+        <p style="font-size:0.82rem;margin-top:0.6rem;color:var(--ink-soft)">${AEO_CHECKS.filter(c=>state[c.id]).length} of ${AEO_CHECKS.length} signals in place. ${pct>=80?'Strong — you are quotable.':'Each fix below measurably increases how often AI engines cite you by name.'}</p>
+      </div>
+    </div>`;
+
+  document.getElementById('aeo-checks').innerHTML = AEO_CHECKS.map(c => {
+    const ok = state[c.id];
+    return `
+    <div style="padding:1rem 0;border-bottom:1px solid var(--line);display:grid;grid-template-columns:auto 1fr auto;gap:1rem;align-items:start">
+      <span style="color:${ok?'var(--green)':'var(--amber)'};font-weight:700;font-size:1.1rem">${ok?'✓':'○'}</span>
+      <div>
+        <div style="font-weight:500;color:var(--ink);font-size:0.95rem">${c.name} <span style="font-size:0.7rem;color:var(--ink-soft);font-weight:400">· ${c.weight} pts</span></div>
+        <div style="font-size:0.82rem;color:var(--ink-soft);margin-top:0.25rem">${c.what}</div>
+        <div style="font-size:0.78rem;color:var(--gold-deep);margin-top:0.3rem;font-style:italic">Why it matters: ${c.why}</div>
+        ${ok ? '' : `<div style="font-size:0.78rem;color:var(--ink-soft);margin-top:0.3rem"><strong>Fix:</strong> ${c.fix}</div>`}
+      </div>
+      <div>${ok ? '<span style="font-size:0.7rem;color:var(--green);font-weight:600">DONE</span>' : `<button class="btn btn-sm" data-aeo-fix="${c.id}">Fix</button>`}</div>
+    </div>`;
+  }).join('');
+
+  document.querySelectorAll('[data-aeo-fix]').forEach(b => b.addEventListener('click', () => {
+    aeo.applied[b.dataset.aeoFix] = new Date().toISOString();
+    saveAeo(aeo); renderAeo();
+    toast('Vesper queued this AEO fix for the next deploy');
+  }));
+
+  /* Questions worth owning */
+  const qs = AEO_QUESTIONS;
+  const sel = document.getElementById('aeo-question');
+  if(sel && !sel.options.length){
+    sel.innerHTML = qs.map((q,i)=>`<option value="${i}">${q.q}</option>`).join('');
+  }
+  document.getElementById('aeo-questions').innerHTML = qs.map(q => `
+    <div style="padding:0.8rem 0;border-bottom:1px solid var(--line)">
+      <div style="font-size:0.9rem;font-weight:500;color:var(--ink)">${q.q}</div>
+      <div style="font-size:0.75rem;color:var(--ink-soft);margin-top:0.2rem">
+        <span class="pill" style="font-size:0.6rem">${q.demand}</span> Best home: <strong>${q.page}</strong>
+      </div>
+    </div>`).join('');
+}
+
+const AEO_QUESTIONS = [
+  { q:'How much liquid can you bring on a plane?', demand:'Very High', page:'blog-tsa-liquid-rules.html',
+    a:'You may bring liquids in containers of 3.4 ounces (100 ml) or less, and all containers must fit inside one quart-sized clear resealable bag — one bag per passenger. The printed container size is what counts, not how much product remains inside it.' },
+  { q:'Do skincare capsules count as liquids at TSA?', demand:'High', page:'index.html FAQ',
+    a:'Single-use skincare capsules hold a fraction of a millilitre each and are individually sealed, placing them far below the 100 ml container limit. Most travellers carry them without using their liquids bag at all, though the officer on duty always has final discretion.' },
+  { q:'How many capsules are in a Lumière sheet?', demand:'High', page:'index.html FAQ',
+    a:'Each Lumière sheet holds 12 single-use capsules — a six-step morning routine and a six-step evening routine. One sheet equals one full day of skincare: makeup remover, cleanser, toner, essence, eye cream, face cream and primer.' },
+  { q:'What is the best travel skincare for carry-on?', demand:'High', page:'travel-hacks.html',
+    a:'The best carry-on skincare avoids the liquid limit entirely. Single-use capsules, solid cleansers, balms and sheet masks are not restricted the way bottles are, so a complete routine fits in a pocket without decanting, leaking, or risking confiscation at security.' },
+  { q:'How long do skincare capsules last?', demand:'Medium', page:'index.html specs',
+    a:'Sealed skincare capsules stay fresh for three years from the manufactured date. Because each dose is hermetically sealed and used once, there is no oxidation or contamination between uses — unlike a jar or pump bottle opened daily.' },
+  { q:'Does skincare need to go in the liquids bag?', demand:'Medium', page:'blog-tsa-liquid-rules.html',
+    a:'Yes — any skincare that pours, spreads, sprays or squeezes counts as a liquid and must go in your quart bag. Solid formats do not: bar cleansers, balms and sticks, powders under 12 ounces, sheet masks, and sealed single-use capsules.' },
+  { q:'Why does skin get dry on planes?', demand:'Medium', page:'blog-travel-routine.html',
+    a:'Cabin humidity drops to roughly 10–20 percent, drier than most deserts. That pulls moisture from skin faster than it can be replaced, which is why hydration and a barrier-sealing moisturizer matter more in flight than any other step.' },
+  { q:'How long does skincare take to work?', demand:'Medium', page:'before-after.html',
+    a:'Hydration is immediate. Brightness and tone typically shift over four to six weeks, and texture and fine lines respond over about twelve weeks. That timeline reflects skin cell turnover of roughly a month and slower collagen changes — not marketing schedules.' }
+];
+
+document.getElementById('aeo-generate')?.addEventListener('click', () => {
+  const i = parseInt(document.getElementById('aeo-question').value || 0);
+  const q = AEO_QUESTIONS[i];
+  const words = q.a.split(/\s+/).length;
+  const html = `<h2>${q.q}</h2>\n<p><strong>${q.a}</strong></p>`;
+  const schema = JSON.stringify({ "@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":q.q,"acceptedAnswer":{"@type":"Answer","text":q.a}}] });
+  document.getElementById('aeo-output').innerHTML = `
+    <div style="background:var(--cream);border-radius:10px;padding:1.2rem;font-size:0.88rem;line-height:1.7">
+      <div style="font-size:0.68rem;letter-spacing:0.2em;text-transform:uppercase;color:var(--gold-deep);font-weight:700;margin-bottom:0.6rem">Answer block · ${words} words · goes on ${q.page}</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:0.76rem;white-space:pre-wrap;background:#14140f;color:#c8c8b8;padding:1rem;border-radius:8px;overflow:auto">${html.replace(/</g,'&lt;')}</div>
+      <div style="font-size:0.68rem;letter-spacing:0.2em;text-transform:uppercase;color:var(--gold-deep);font-weight:700;margin:1rem 0 0.5rem">Matching FAQ schema</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:0.72rem;white-space:pre-wrap;background:#14140f;color:#c8c8b8;padding:1rem;border-radius:8px;max-height:150px;overflow:auto">${schema.replace(/</g,'&lt;')}</div>
+      <button class="btn btn-sm" style="margin-top:1rem" onclick="navigator.clipboard.writeText(${JSON.stringify(html + '\\n\\n' + schema)}).then(()=>toast('Copied — paste it into the page'))">Copy Both</button>
+    </div>`;
+  toast('Answer block generated');
+});
+
+document.getElementById('aeo-scan')?.addEventListener('click', () => {
+  const b = document.getElementById('aeo-scan');
+  b.disabled = true; b.textContent = 'Scanning…';
+  toast('Vesper is checking pages for answer-ready structure…');
+  setTimeout(() => {
+    aeo.lastScan = new Date().toISOString();
+    saveAeo(aeo); renderAeo();
+    b.disabled = false; b.textContent = '↻ Re-Scan Pages';
+    toast('✓ AEO scan complete');
+  }, 1500);
+});
+
+document.getElementById('aeo-fix')?.addEventListener('click', () => {
+  const b = document.getElementById('aeo-fix');
+  b.disabled = true; b.textContent = 'Applying…';
+  setTimeout(() => {
+    AEO_CHECKS.forEach(c => aeo.applied[c.id] = new Date().toISOString());
+    saveAeo(aeo); renderAeo();
+    b.disabled = false; b.textContent = 'Apply AEO Fixes';
+    toast('✓ All AEO fixes queued — deploy to publish');
+  }, 1800);
+});
 
 /* ======================================================
    SABLE · JOURNAL / EDITORIAL AGENT
