@@ -34,7 +34,16 @@ exports.handler = async (event) => {
   }
   // Health probe — lets the checkout page know up front whether payments work
   if (event.httpMethod === 'GET') {
-    return json(200, { configured: !!process.env.STRIPE_SECRET_KEY });
+    const key = process.env.STRIPE_SECRET_KEY || '';
+    // Diagnostics only. Never returns a key value — names and shape only,
+    // so a typo or a pasted publishable key is obvious without leaking secrets.
+    return json(200, {
+      configured: !!key,
+      keyPrefix: key ? key.slice(0, 8) + '...' : null,
+      keyLooksValid: /^sk_(test|live)_/.test(key),
+      stripeVarsPresent: Object.keys(process.env).filter(k => /stripe/i.test(k)).sort(),
+      nodeVersion: process.version
+    });
   }
   if (event.httpMethod !== 'POST') {
     return json(405, { error: 'Method not allowed' });
