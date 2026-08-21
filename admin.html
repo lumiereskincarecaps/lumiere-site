@@ -574,12 +574,12 @@
       <!-- ============ OVERVIEW ============ -->
       <section class="view active" id="view-overview">
         <div class="stats-row">
-          <div class="stat-card"><span class="stat-label">Today's Revenue</span><div class="stat-value">$1,247</div><span class="stat-meta up">↑ 18% vs. 7-day avg</span></div>
-          <div class="stat-card"><span class="stat-label">Pending Orders</span><div class="stat-value">2</div><span class="stat-meta">Awaiting processing</span></div>
-          <div class="stat-card"><span class="stat-label">Open Inquiries</span><div class="stat-value">5</div><span class="stat-meta">3 AI-drafted</span></div>
-          <div class="stat-card"><span class="stat-label">Refund Queue</span><div class="stat-value">3</div><span class="stat-meta">$214 total value</span></div>
-          <div class="stat-card"><span class="stat-label">AI Tasks Today</span><div class="stat-value">53</div><span class="stat-meta up">Across 6 agents</span></div>
-          <div class="stat-card"><span class="stat-label">Active Customers</span><div class="stat-value">847</div><span class="stat-meta up">↑ 12 this week</span></div>
+          <div class="stat-card"><span class="stat-label">Today's Revenue</span><div class="stat-value" id="ov-revenue">$0</div><span class="stat-meta">No orders yet today</span></div>
+          <div class="stat-card"><span class="stat-label">Pending Orders</span><div class="stat-value" id="ov-pending">0</div><span class="stat-meta">Awaiting processing</span></div>
+          <div class="stat-card"><span class="stat-label">Open Inquiries</span><div class="stat-value" id="ov-inquiries">0</div><span class="stat-meta">None waiting</span></div>
+          <div class="stat-card"><span class="stat-label">Refund Queue</span><div class="stat-value" id="ov-refunds">0</div><span class="stat-meta">$0 total value</span></div>
+          <div class="stat-card"><span class="stat-label">AI Tasks Today</span><div class="stat-value" id="ov-tasks">0</div><span class="stat-meta">Across 7 agents</span></div>
+          <div class="stat-card"><span class="stat-label">Active Customers</span><div class="stat-value" id="ov-customers">0</div><span class="stat-meta">Launch day</span></div>
         </div>
 
         <div class="grid-2">
@@ -1114,97 +1114,64 @@ const AGENTS = [
     id:'aurora', name:'Aurora', avatar:'A', avatarClass:'a-aurora',
     role:'Order Operations Agent',
     status:'active', statusLabel:'Active',
-    tasksToday:23, accuracy:'99.2%',
+    tasksToday:0, accuracy:'99.2%',
     body:'Monitors every incoming order in real time. Runs fraud detection, validates inventory, applies promotional codes, and routes to the correct fulfillment workflow. Escalates anomalies to a human within 90 seconds.',
     capabilities:['Fraud Scoring','Address Validation','Promo Code Logic','Tax Calculation','Auto-Approve','Carrier Routing'],
-    recent:[
-      {time:'2 min ago', text:'Approved order <strong>LUM-2826</strong> · fraud score 0.04 · auto-routed to UPS Ground'},
-      {time:'14 min ago', text:'Flagged order <strong>LUM-2825</strong> for human review · billing/shipping mismatch'},
-      {time:'36 min ago', text:'Validated address for <strong>LUM-2824</strong> · USPS-corrected unit number'},
-      {time:'1 hr ago', text:'Auto-applied SUMMER10 to <strong>LUM-2823</strong> · saved customer $8.90'},
-      {time:'2 hrs ago', text:'Escalated <strong>LUM-2820</strong> · international shipment requires manual customs form'}
-    ]
+    recent:[{ text:'No activity yet', time:'—' }]
   },
   {
     id:'sage', name:'Sage', avatar:'S', avatarClass:'a-sage',
     role:'Customer Care Agent',
     status:'active', statusLabel:'Active',
-    tasksToday:14, accuracy:'96.8%',
+    tasksToday:0, accuracy:'96.8%',
     body:'Reads every inbound email, contact form, and DM. Classifies intent and urgency, drafts on-brand replies grounded in your knowledge base, and queues them for one-click human approval. Escalates anything sensitive or off-policy.',
     capabilities:['Sentiment Analysis','Intent Classification','Reply Drafting','Knowledge Base Lookup','Escalation Logic','Tone Matching'],
-    recent:[
-      {time:'4 min ago', text:'Drafted reply to <strong>Olivia Brennan</strong> · "delivery delay" · sentiment neutral · ready for review'},
-      {time:'22 min ago', text:'Auto-resolved <strong>Sarah K.</strong> · "where is order?" · sent tracking + ETA'},
-      {time:'48 min ago', text:'Flagged <strong>James H.</strong> for personal touch · second purchase complaint · routed to founder'},
-      {time:'1 hr ago', text:'Drafted reply to wholesale inquiry from <strong>Bali Boutique Hotel</strong> · routed to partnerships'}
-    ]
+    recent:[{ text:'No activity yet', time:'—' }]
   },
   {
     id:'mercer', name:'Mercer', avatar:'M', avatarClass:'a-mercer',
     role:'Refund &amp; Returns Agent',
     status:'active', statusLabel:'Active',
-    tasksToday:7, accuracy:'97.5%',
+    tasksToday:0, accuracy:'97.5%',
     body:'Reviews every refund and return request against your published policy (30-day standard, 30-day Skin-Try Guarantee). Calculates eligibility, computes risk score, and recommends APPROVE / DENY / REVIEW with rationale.',
     capabilities:['Policy Enforcement','Eligibility Math','Fraud Pattern Detection','Auto-Approve under $50','Refund Disbursement','Return Label Generation'],
-    recent:[
-      {time:'12 min ago', text:'Recommended <strong>APPROVE</strong> for <strong>LUM-2814</strong> · within 30-day Skin-Try window · risk 0.08'},
-      {time:'1 hr ago', text:'Recommended <strong>REVIEW</strong> for <strong>LUM-2802</strong> · third return this quarter · risk 0.61'},
-      {time:'3 hrs ago', text:'Auto-approved <strong>LUM-2812</strong> · damaged in transit · $24 refund issued'}
-    ]
+    recent:[{ text:'No activity yet', time:'—' }]
   },
   {
     id:'vesper', name:'Vesper', avatar:'V', avatarClass:'a-vesper',
     role:'SEO · GEO · AIO Agent',
     status:'learning', statusLabel:'Learning',
-    tasksToday:3, accuracy:'94.0%',
+    tasksToday:0, accuracy:'94.0%',
     body:'Continuously audits the site against every Google algorithm from PageRank (1996) through the latest 2026 updates. Specializes in <strong>SEO</strong> (traditional search), <strong>GEO</strong> (Generative Engine Optimization for AI search), and <strong>AIO</strong> (AI Optimization for inclusion in AI Overviews, ChatGPT, Claude, Perplexity).',
     capabilities:['Algorithm Awareness','Schema.org','Structured Data','Core Web Vitals','E-E-A-T Signals','GEO for AI Search','Citable Content','Helpful Content Compliance','Topical Authority'],
-    recent:[
-      {time:'8 min ago', text:'Updated meta description on <strong>/shop</strong> · aligned with Helpful Content guidance'},
-      {time:'2 hrs ago', text:'Added <strong>FAQ schema</strong> to /returns · improves AI Overview eligibility'},
-      {time:'Yesterday', text:'Detected new <strong>AI Overviews citation pattern</strong> · updated GEO playbook'}
-    ]
+    recent:[{ text:'No activity yet', time:'—' }]
   },
   {
     id:'roan', name:'Roan', avatar:'R', avatarClass:'a-roan',
     role:'Inventory &amp; Forecast Agent',
     status:'idle', statusLabel:'Idle',
-    tasksToday:1, accuracy:'92.4%',
+    tasksToday:0, accuracy:'92.4%',
     body:'Watches stock levels, predicts depletion using 30-day rolling demand, and triggers reorders before stockouts. Models seasonality (gift season, Mother\'s Day spikes) and supplier lead times.',
     capabilities:['Demand Forecasting','Reorder Point Logic','Seasonal Modeling','Supplier Lead Time','Stockout Risk','SKU-Level Insights'],
-    recent:[
-      {time:'8 hrs ago', text:'Forecasted reorder of <strong>7-Day sheets</strong> in 11 days · 95% confidence'},
-      {time:'Yesterday', text:'Increased Q4 forecast by <strong>22%</strong> based on Mother\'s Day signal'},
-      {time:'3 days ago', text:'Triggered emergency reorder of <strong>Exfoliating Sponges</strong> · stocked out in 6 days'}
-    ]
+    recent:[{ text:'No activity yet', time:'—' }]
   },
   {
     id:'nova', name:'Nova', avatar:'N', avatarClass:'a-vesper',
     role:'Partner &amp; Ambassador Agent',
     status:'active', statusLabel:'Active',
-    tasksToday:11, accuracy:'97.1%',
+    tasksToday:0, accuracy:'97.1%',
     body:'Runs the entire ambassador program: reviews applications (checks follower authenticity, engagement rates, niche fit), auto-upgrades tiers based on sales milestones, flags suspicious code usage (self-referrals, coupon-site leaks), executes monthly payouts, and drafts partner communications.',
     capabilities:['Application Vetting','Follower Authenticity Check','Tier Auto-Upgrades','Fraud Pattern Detection','Payout Execution','Code Leak Monitoring','Partner Comms Drafting','1099 Tracking'],
-    recent:[
-      {time:'18 min ago', text:'Flagged code <strong>MAYA-TT</strong> spike — verified legit (viral TikTok, 210K views)'},
-      {time:'2 hrs ago', text:'Auto-upgraded <strong>Jess Torres</strong> to Silver tier · crossed $2,500 in sales'},
-      {time:'5 hrs ago', text:'Rejected application — bot-farm follower pattern detected (34% authenticity)'},
-      {time:'Yesterday', text:'Monthly payout run complete: <strong>$2,436.60</strong> across 2 partners · 0 failures'},
-      {time:'2 days ago', text:'Detected <strong>JESS-IG</strong> posted on coupon aggregator — sent takedown, notified partner'}
-    ]
+    recent:[{ text:'No activity yet', time:'—' }]
   },
   {
     id:'lyra', name:'Lyra', avatar:'L', avatarClass:'a-lyra',
     role:'Marketing &amp; Content Agent',
     status:'active', statusLabel:'Active',
-    tasksToday:5, accuracy:'89.5%',
+    tasksToday:0, accuracy:'89.5%',
     body:'Generates campaign concepts, writes A/B copy variants, schedules social posts, and analyzes campaign attribution. Aware of cultural moments, seasonal hooks, and your brand voice guide.',
     capabilities:['A/B Copy Generation','Campaign Concepting','Social Scheduling','Attribution Modeling','Brand Voice','Email Sequence Drafting'],
-    recent:[
-      {time:'30 min ago', text:'Created 3 A/B variants for <strong>hero CTA</strong> · winner predicted: "Pack Light. Glow Louder."'},
-      {time:'2 hrs ago', text:'Scheduled IG carousel for <strong>Mother\'s Day</strong> · runs May 9'},
-      {time:'5 hrs ago', text:'Drafted abandoned-cart email sequence · 3-email flow ready for review'}
-    ]
+    recent:[{ text:'No activity yet', time:'—' }]
   }
 ];
 
@@ -1349,26 +1316,15 @@ $$('.tab').forEach(t => t.addEventListener('click', () => switchView(t.dataset.v
    ====================================================== */
 function renderActivity(){
   const feed = $('#activity-feed');
-  // Mix of recent agent actions
-  const items = [
-    {agent:'A', cls:'order-badge', text:'<strong>Aurora</strong> approved order LUM-2826 · auto-routed to UPS Ground', time:'2 min ago'},
-    {agent:'V', cls:'seo-badge', text:'<strong>Vesper</strong> updated meta description on /shop page', time:'8 min ago'},
-    {agent:'S', cls:'care-badge', text:'<strong>Sage</strong> drafted reply to James Holloway about delivery delay', time:'12 min ago'},
-    {agent:'M', cls:'ai-badge', text:'<strong>Mercer</strong> recommended APPROVE for refund REF-0089', time:'12 min ago'},
-    {agent:'A', cls:'order-badge', text:'<strong>Aurora</strong> flagged LUM-2825 for human review (billing/shipping mismatch)', time:'14 min ago'},
-    {agent:'L', cls:'seo-badge', text:'<strong>Lyra</strong> created 3 A/B variants for hero CTA copy', time:'30 min ago'},
-    {agent:'S', cls:'care-badge', text:'<strong>Sage</strong> drafted reply to Anya about chamomile allergy', time:'47 min ago'},
-    {agent:'M', cls:'ai-badge', text:'<strong>Mercer</strong> flagged refund REF-0088 for human review · pattern detected', time:'1 hr ago'},
-    {agent:'S', cls:'care-badge', text:'<strong>Sage</strong> escalated Bali Boutique wholesale inquiry to partnerships', time:'1 hr ago'},
-    {agent:'V', cls:'seo-badge', text:'<strong>Vesper</strong> added FAQ schema to /returns', time:'2 hrs ago'},
-  ];
-  feed.innerHTML = items.map(i => `
+  // Live store: agent actions appear here as the site handles real orders, inquiries and scans.
+  const items = [];
+  feed.innerHTML = items.length ? items.map(i => `
     <div class="activity-item">
       <div class="activity-icon ${i.cls}">${i.agent}</div>
       <div class="activity-text">${i.text}</div>
       <div class="activity-time">${i.time}</div>
     </div>
-  `).join('');
+  `).join('') : '<div style="padding:2.5rem 1rem;text-align:center;color:var(--ink-soft);font-size:0.9rem;font-style:italic">No activity yet — your agents will log here as orders and inquiries come in.</div>';
 }
 
 /* AGENT HEALTH (overview) */
