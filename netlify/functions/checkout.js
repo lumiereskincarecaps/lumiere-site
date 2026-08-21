@@ -129,36 +129,52 @@ exports.handler = async (event) => {
     event.headers.origin ||
     (event.headers.host ? `https://${event.headers.host}` : 'https://lumiereskincarecaps.com');
 
-  try {
-    const session = await stripe.checkout.sessions.create({
-      mode: 'payment',
-      line_items,
-      discounts,
-      customer_email: customer.email,
-      billing_address_collection: 'required',
-      shipping_address_collection: { allowed_countries: ['US','CA','GB','AU','DE','FR','IE','NL','NZ','SG'] },
-      phone_number_collection: { enabled: false },
-      shipping_options: [{
-        shipping_rate_data: {
-          type: 'fixed_amount',
-          fixed_amount: { amount: Math.round(shippingCost * 100), currency: 'usd' },
-          display_name: shippingCost === 0 ? 'Free shipping' : 'Standard shipping',
-          delivery_estimate: {
-            minimum: { unit: 'business_day', value: 3 },
-            maximum: { unit: 'business_day', value: 7 }
-          }
+  const sessionParams = {
+    mode: 'payment',
+    line_items,
+    discounts,
+    customer_email: customer.email,
+    billing_address_collection: 'required',
+    shipping_address_collection: { allowed_countries: ['US','CA','GB','AU','DE','FR','IE','NL','NZ','SG'] },
+    phone_number_collection: { enabled: false },
+    shipping_options: [{
+      shipping_rate_data: {
+        type: 'fixed_amount',
+        fixed_amount: { amount: Math.round(shippingCost * 100), currency: 'usd' },
+        display_name: shippingCost === 0 ? 'Free shipping' : 'Standard shipping',
+        delivery_estimate: {
+          minimum: { unit: 'business_day', value: 3 },
+          maximum: { unit: 'business_day', value: 7 }
         }
-      }],
-      automatic_tax: { enabled: false },
-      allow_promotion_codes: !discounts,
-      success_url: `${origin}/portal.html?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${origin}/checkout.html?checkout=cancel`,
-      metadata: {
-        ambassadorCode: ambassadorCode || '',
-        customerName: [customer.firstName, customer.lastName].filter(Boolean).join(' ') || customer.name || ''
       }
-    });
+    }],
+    // Stripe Tax: calculates sales tax from the customer's address at checkout.
+    // Requires Stripe Tax to be activated in the dashboard (origin address set).
+    automatic_tax: { enabled: true },
+    allow_promotion_codes: !discounts,
+    success_url: `${origin}/portal.html?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: `${origin}/checkout.html?checkout=cancel`,
+    metadata: {
+      ambassadorCode: ambassadorCode || '',
+      customerName: [customer.firstName, customer.lastName].filter(Boolean).join(' ') || customer.name || ''
+    }
+  };
 
+  try {
+    let session;
+    try {
+      session = await stripe.checkout.sessions.create(sessionParams);
+    } catch (taxErr) {
+      // If Stripe Tax isn't activated in the dashboard yet, never block the sale —
+      // retry without tax and surface a warning for the admin panel.
+      const msg = (taxErr && taxErr.message) || '';
+      if (/tax/i.test(msg)) {
+        console.warn('Stripe Tax not active, creating session without tax:', msg);
+        session = await stripe.checkout.sessions.create({ ...sessionParams, automatic_tax: { enabled: false } });
+        return json(200, { url: session.url, id: session.id, taxWarning: 'Stripe Tax is not activated — no sales tax was collected on this order.' });
+      }
+      throw taxErr;
+    }
     return json(200, { url: session.url, id: session.id });
   } catch (e) {
     console.error('Stripe session error:', e);

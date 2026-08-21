@@ -124,3 +124,40 @@ These are real gaps, not oversights you can ignore forever:
 - **Inventory** — nothing decrements stock or prevents overselling.
 
 Ask me for any of these when you're ready.
+
+
+---
+
+## Sales tax (Stripe Tax) — now wired in
+
+Checkout now asks Stripe to calculate sales tax from each customer's address.
+One dashboard step activates it:
+
+1. Stripe dashboard → search "Tax" → **Get started with Stripe Tax**
+2. Confirm your **origin address** (your Maryland address)
+3. Add a **registration** for Maryland (and any other state where you're registered to collect)
+
+Until you activate it, checkout quietly falls back to charging no tax — sales
+never break — but you're responsible for the uncollected tax, so do this before
+going live. Stripe Tax costs 0.5% of transactions where it calculates tax.
+
+---
+
+## Order webhook — now wired in
+
+Stripe now notifies your site the instant a payment completes, even if the
+customer closes the tab. Orders are stored durably in Netlify Blobs.
+
+One-time setup:
+
+1. Stripe dashboard → **Developers → Webhooks → Add endpoint**
+2. Endpoint URL: `https://lumiereskincarecaps.com/api/stripe/webhook`
+3. Events: select just **checkout.session.completed**
+4. After creating it, copy the **Signing secret** (starts `whsec_`)
+5. In Netlify, add variable — Key: `STRIPE_WEBHOOK_SECRET`, Value: the `whsec_` string
+   *(remember: name in the top box, secret in the bottom box)*
+6. Trigger a deploy
+
+To read stored orders programmatically, set a variable `ORDERS_API_KEY` to any
+long random string, then `GET /api/orders/list` with header
+`Authorization: Bearer <that string>`. Without the variable, the endpoint stays sealed.

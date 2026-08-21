@@ -25,3 +25,15 @@
   to = "/.netlify/functions/services"
   status = 200
   force = true
+
+[[redirects]]
+  from = "/api/stripe/webhook"
+  to = "/.netlify/functions/stripe-webhook"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/orders/list"
+  to = "/.netlify/functions/orders"
+  status = 200
+  force = true
