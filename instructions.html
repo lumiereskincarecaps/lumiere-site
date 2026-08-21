@@ -80,23 +80,22 @@
   .box-visual.has-image{
     aspect-ratio:0.85;
   }
-  .routine-day .box-visual.has-image{background:linear-gradient(160deg,#fffdf8,#efe3cc) !important}
-  .routine-night .box-visual.has-image{background:linear-gradient(160deg,#1c1c1a,#0c0c0a) !important;border-color:rgba(212,184,150,0.3) !important}
+  /* Flat single-tone panels so multiply can erase the photo's own background completely */
+  .routine-day .box-visual.has-image{background:#f5ebd9 !important}
+  .routine-night .box-visual.has-image{background:#f5ebd9 !important;border-color:rgba(212,184,150,0.45) !important}
   .box-visual.has-image > img{
     position:absolute;inset:0;
     width:100% !important;
     height:100% !important;
     object-fit:contain !important;
     padding:1.8rem;
+    mix-blend-mode:multiply;   /* white photo background dissolves into the flat panel */
   }
-  /* Day: multiply melts white photo backgrounds into the cream card */
   .routine-day .box-visual.has-image > img{
-    mix-blend-mode:multiply;
     filter:drop-shadow(0 18px 36px rgba(90,66,30,0.25));
   }
-  /* Night: black card matching the section — photo shown as-is with a soft gold glow */
   .routine-night .box-visual.has-image > img{
-    filter:drop-shadow(0 18px 40px rgba(212,184,150,0.18));
+    filter:drop-shadow(0 18px 36px rgba(90,66,30,0.28));
   }
   .box-visual svg{width:62%;height:auto}
   .box-tag{
