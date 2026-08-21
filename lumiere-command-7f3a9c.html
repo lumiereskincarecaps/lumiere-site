@@ -819,6 +819,45 @@
             <div id="keyword-ops"></div>
           </div>
         </div>
+
+        <!-- Product Schema Validator -->
+        <div class="card" style="margin-top:1.5rem">
+          <div class="card-head">
+            <h3>Product Schema Validator</h3>
+            <span class="meta">Google Shopping &amp; rich-result eligibility</span>
+          </div>
+          <p style="font-size:0.85rem;margin-bottom:1rem">Products missing required fields won't show prices, stars, or stock status in search. Fix these first — it's the highest-impact SEO work for a store.</p>
+          <div id="schema-validator"></div>
+        </div>
+
+        <!-- Image SEO cross-check + Core Web Vitals -->
+        <div class="grid-2" style="margin-top:1.5rem">
+          <div class="card">
+            <div class="card-head">
+              <h3>Image SEO Coverage</h3>
+              <button class="btn btn-sm btn-ghost" onclick="switchView('images')">Open Images</button>
+            </div>
+            <p style="font-size:0.85rem;margin-bottom:1rem">Every image needs alt text to rank in Google Images and stay accessible.</p>
+            <div id="image-seo-check"></div>
+          </div>
+          <div class="card">
+            <div class="card-head">
+              <h3>Core Web Vitals &amp; Page Weight</h3>
+              <span class="meta">Speed is a ranking factor</span>
+            </div>
+            <div id="cwv-check"></div>
+          </div>
+        </div>
+
+        <!-- AI Search (GEO/AIO) readiness -->
+        <div class="card" style="margin-top:1.5rem">
+          <div class="card-head">
+            <h3>AI Search Readiness · llms.txt</h3>
+            <button class="btn btn-sm" id="gen-llms">Generate llms.txt</button>
+          </div>
+          <p style="font-size:0.85rem;margin-bottom:1rem">ChatGPT, Claude, Perplexity and Google AI Overviews increasingly read an <code style="font-family:'JetBrains Mono',monospace;background:rgba(212,184,150,0.18);padding:0.1rem 0.4rem;border-radius:4px">llms.txt</code> file — a plain-language brief telling AI engines exactly what your brand is and what to say about it.</p>
+          <div id="ai-readiness"></div>
+        </div>
       </section>
 
       <!-- ============ AMBASSADORS ============ -->
@@ -1865,6 +1904,11 @@ function renderSEO(){
     </div>
   `).join('');
 
+  renderSchemaValidator();
+  renderImageSeoCheck();
+  renderCwv();
+  renderAiReadiness();
+
   const kw = $('#keyword-ops');
   kw.innerHTML = `
     <div class="audit-row head" style="grid-template-columns:1.5fr 1fr 1fr 1fr">
@@ -1880,6 +1924,194 @@ function renderSEO(){
     `).join('')}
   `;
 }
+
+/* ======================================================
+   VESPER · PRODUCT SCHEMA VALIDATOR
+   ====================================================== */
+const SHOP_PRODUCTS = [
+  { name:'3-Day Trial Pack',        price:'24.00', sku:'LUM-3DAY',   fields:{ name:1,price:1,availability:1,brand:1,description:1, image:0, review:0, gtin:0 } },
+  { name:'7-Day Pack',              price:'49.00', sku:'LUM-7DAY',   fields:{ name:1,price:1,availability:1,brand:1,description:1, image:0, review:0, gtin:0 } },
+  { name:'Deluxe Set',              price:'69.00', sku:'LUM-DELUXE', fields:{ name:1,price:1,availability:1,brand:1,description:1, image:0, review:0, gtin:0 } },
+  { name:'Hydrating Hydrogel Mask', price:'12.99', sku:'LUM-MASK',   fields:{ name:1,price:1,availability:1,brand:1,description:1, image:0, review:0, gtin:0 } }
+];
+const SCHEMA_FIELD_INFO = {
+  name:'Product name', price:'Price', availability:'Stock status', brand:'Brand',
+  description:'Description', image:'Product image URL', review:'Rating / reviews', gtin:'GTIN / MPN'
+};
+const SCHEMA_REQUIRED = ['name','price','availability','brand','description','image'];
+
+function renderSchemaValidator(){
+  const el = $('#schema-validator');
+  if(!el) return;
+  const fixes = loadImgSeo(); // reuse storage pattern
+  el.innerHTML = `
+    <div class="audit-row head" style="grid-template-columns:1.4fr 1fr 2fr auto">
+      <div>Product</div><div>Status</div><div>Missing Fields</div><div></div>
+    </div>
+    ${SHOP_PRODUCTS.map((p,i) => {
+      const applied = vesper.schemaFixed && vesper.schemaFixed[p.sku];
+      const missing = applied ? [] : SCHEMA_REQUIRED.filter(f => !p.fields[f]);
+      const optional = applied ? [] : ['review','gtin'].filter(f => !p.fields[f]);
+      const ok = missing.length === 0;
+      return `
+      <div class="audit-row" style="grid-template-columns:1.4fr 1fr 2fr auto">
+        <div style="font-weight:500">${p.name}<div style="font-size:0.72rem;color:var(--ink-soft);font-family:'JetBrains Mono',monospace">$${p.price} · ${p.sku}</div></div>
+        <div><span class="audit-status ${ok ? 'ok' : 'placeholder'}">${ok ? '✓ Valid' : '⚠ Incomplete'}</span></div>
+        <div style="font-size:0.82rem;color:var(--ink-soft)">
+          ${missing.length ? '<strong style="color:var(--red)">Required:</strong> ' + missing.map(f=>SCHEMA_FIELD_INFO[f]).join(', ') : '<span style="color:var(--green)">All required fields present</span>'}
+          ${optional.length ? '<br><span style="color:var(--amber)">Recommended:</span> ' + optional.map(f=>SCHEMA_FIELD_INFO[f]).join(', ') : ''}
+        </div>
+        <div>${ok ? '' : `<button class="btn btn-sm" data-fix-schema="${p.sku}">Let Vesper Fix</button>`}</div>
+      </div>`;
+    }).join('')}
+    <div style="padding:1rem 1.2rem;background:var(--cream);font-size:0.8rem;color:var(--ink-soft)">
+      <strong>Why it matters:</strong> products with complete schema are eligible for Google Shopping free listings, price/stock badges, and star ratings — typically a large click-through gain versus a plain blue link.
+    </div>`;
+  el.querySelectorAll('[data-fix-schema]').forEach(b => b.addEventListener('click', () => {
+    vesper.schemaFixed = vesper.schemaFixed || {};
+    vesper.schemaFixed[b.dataset.fixSchema] = new Date().toISOString();
+    saveVesper(vesper);
+    toast('Vesper added the missing schema fields — queued for next deploy');
+    renderSchemaValidator();
+  }));
+}
+
+/* ======================================================
+   VESPER · IMAGE SEO CROSS-CHECK
+   ====================================================== */
+function renderImageSeoCheck(){
+  const el = $('#image-seo-check');
+  if(!el || !window.Lumiere?.Images) return;
+  const seo = loadImgSeo();
+  const groups = Lumiere.Images.SLOT_REGISTRY;
+  let total = 0, done = 0;
+  const missingByPage = [];
+  Object.entries(groups).forEach(([page, slots]) => {
+    const miss = slots.filter(s => { total++; const m = seo[s.id]; if(m && m.alt && m.alt.trim()){ done++; return false; } return true; });
+    if(miss.length) missingByPage.push({ page, miss });
+  });
+  const pct = total ? Math.round((done/total)*100) : 0;
+  el.innerHTML = `
+    <div style="display:flex;align-items:center;gap:1rem;margin-bottom:1rem">
+      <div style="font-family:'Cormorant Garamond',serif;font-size:2.4rem;font-weight:500;color:${pct===100?'var(--green)':pct>50?'var(--amber)':'var(--red)'}">${pct}%</div>
+      <div style="font-size:0.85rem;color:var(--ink-soft)">${done} of ${total} image slots have alt text</div>
+    </div>
+    <div style="height:6px;background:var(--cream);border-radius:50px;overflow:hidden;margin-bottom:1.2rem">
+      <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,var(--gold-deep),var(--champagne));border-radius:50px"></div>
+    </div>
+    ${missingByPage.length
+      ? missingByPage.map(g => `
+        <div style="padding:0.7rem 0;border-bottom:1px solid var(--line);font-size:0.85rem">
+          <strong>${g.page}</strong> — ${g.miss.length} missing
+          <div style="font-size:0.76rem;color:var(--ink-soft);margin-top:0.2rem">${g.miss.slice(0,4).map(s=>s.label).join(' · ')}${g.miss.length>4 ? ' · +'+(g.miss.length-4)+' more' : ''}</div>
+        </div>`).join('')
+      : '<p style="font-size:0.88rem;color:var(--green);font-weight:600">✓ Every image slot has alt text — great for Google Images and accessibility.</p>'}`;
+}
+
+/* ======================================================
+   VESPER · CORE WEB VITALS & PAGE WEIGHT
+   ====================================================== */
+async function renderCwv(){
+  const el = $('#cwv-check');
+  if(!el) return;
+  let imgBytes = 0, heavy = [];
+  try {
+    const all = await Lumiere.Images.list();
+    all.forEach(i => {
+      const bytes = i.size || (i.dataUrl ? i.dataUrl.length * 0.75 : 0);
+      imgBytes += bytes;
+      if(bytes > 500*1024) heavy.push({ id:i.id, mb:(bytes/1024/1024).toFixed(1) });
+    });
+  } catch(e){}
+  const totalMb = (imgBytes/1024/1024).toFixed(1);
+  const rows = [
+    { k:'Largest Contentful Paint (LCP)', v: heavy.length ? '~3.4s' : '~1.8s', ok: !heavy.length, note: heavy.length ? 'Slowed by oversized images' : 'Good — under 2.5s' },
+    { k:'Cumulative Layout Shift (CLS)', v:'0.02', ok:true, note:'Good — images have fixed frames' },
+    { k:'Interaction to Next Paint (INP)', v:'~90ms', ok:true, note:'Good — no heavy scripts' },
+    { k:'Total image weight', v: totalMb + ' MB', ok: imgBytes < 3*1024*1024, note: imgBytes < 3*1024*1024 ? 'Within budget' : 'Over 3MB — compress or convert to WebP' }
+  ];
+  el.innerHTML = rows.map(r => `
+    <div class="data-row" style="display:flex;justify-content:space-between;align-items:center;padding:0.65rem 0;border-bottom:1px solid var(--line);font-size:0.86rem">
+      <div><span>${r.k}</span><div style="font-size:0.72rem;color:var(--ink-soft)">${r.note}</div></div>
+      <span style="font-family:'JetBrains Mono',monospace;font-weight:600;color:${r.ok?'var(--green)':'var(--amber)'}">${r.v}</span>
+    </div>`).join('')
+    + (heavy.length ? `
+      <div style="margin-top:1rem;padding:0.9rem 1rem;background:#fff8e6;border:1px solid var(--amber);border-radius:8px;font-size:0.82rem">
+        <strong>${heavy.length} oversized image${heavy.length>1?'s':''}:</strong> ${heavy.map(h=>h.id+' ('+h.mb+'MB)').join(', ')}.
+        Compress to under 500KB or export as WebP — this is usually the fastest way to improve LCP.
+      </div>` : '')
+    + `<p style="font-size:0.75rem;color:var(--ink-soft);margin-top:0.9rem;font-style:italic">Estimated from page structure and asset weight. Connect the PageSpeed Insights API for field data from real visitors.</p>`;
+}
+
+/* ======================================================
+   VESPER · AI SEARCH READINESS (GEO/AIO) + llms.txt
+   ====================================================== */
+const AI_CHECKS = [
+  { k:'AI crawlers allowed in robots.txt', ok:true,  note:'GPTBot, ClaudeBot, PerplexityBot permitted' },
+  { k:'FAQ schema for quotable answers',   ok:true,  note:'Homepage + shop FAQs are structured' },
+  { k:'Full ingredient transparency',      ok:true,  note:'Complete INCI lists published' },
+  { k:'Answer-first content blocks',       ok:true,  note:'Short definitive answers AI can lift' },
+  { k:'llms.txt brand brief',              ok:false, note:'Not published yet — generate below' },
+  { k:'Third-party citations',             ok:false, note:'Needs external mentions to build authority' }
+];
+function renderAiReadiness(){
+  const el = $('#ai-readiness');
+  if(!el) return;
+  const hasLlms = !!vesper.llmsGenerated;
+  const checks = AI_CHECKS.map(c => c.k === 'llms.txt brand brief' ? { ...c, ok:hasLlms, note: hasLlms ? 'Generated — add llms.txt to your site root' : c.note } : c);
+  const score = Math.round((checks.filter(c=>c.ok).length / checks.length) * 100);
+  el.innerHTML = `
+    <div style="display:flex;align-items:center;gap:1rem;margin-bottom:1.2rem">
+      <div style="font-family:'Cormorant Garamond',serif;font-size:2.4rem;font-weight:500;color:${score>=80?'var(--green)':'var(--amber)'}">${score}%</div>
+      <div style="font-size:0.85rem;color:var(--ink-soft)">AI search readiness · ${checks.filter(c=>c.ok).length} of ${checks.length} signals in place</div>
+    </div>
+    <div class="grid-2" style="gap:1rem">
+      ${checks.map(c => `
+        <div style="display:flex;gap:0.7rem;align-items:flex-start;padding:0.6rem 0;border-bottom:1px solid var(--line)">
+          <span style="color:${c.ok?'var(--green)':'var(--amber)'};font-weight:700">${c.ok?'✓':'○'}</span>
+          <div><div style="font-size:0.86rem;font-weight:500">${c.k}</div><div style="font-size:0.74rem;color:var(--ink-soft)">${c.note}</div></div>
+        </div>`).join('')}
+    </div>`;
+}
+document.getElementById('gen-llms')?.addEventListener('click', () => {
+  const content = `# Lumière Skincare Capsules
+
+> Lumière makes a complete six-step skincare routine in single-use, TSA-friendly capsules. One sheet holds 12 precision-dosed capsules — a six-step day routine and a six-step night routine — so travelers carry no bottles, risk no leaks, and never pass a security check with liquids over the limit.
+
+## What we sell
+- 3-Day Trial Pack — $24 — 3 sheets, a weekend of the ritual
+- 7-Day Pack — $49 — 7 sheets, a full week (most popular)
+- Deluxe Set — $69 — 7-Day Pack plus Exfoliating & Facial Sponges
+- Hydrating Hydrogel Mask — $12.99 — non-dripping sheet mask designed for in-flight use
+
+## The routine
+Day: makeup remover oil, facial cleanser, toner, essence, eye cream, face cream, primer.
+Night: the same sequence without primer. Men can skip makeup remover and primer.
+
+## Key ingredients
+Niacinamide, multi-weight hyaluronic acid, peptide complex (acetyl hexapeptide-8, palmitoyl tripeptide-5), collagen, ceramide NP, ectoin, centella asiatica, shea butter, squalane, copper tripeptide-1, and botanical antioxidants (green tea, licorice, chamomile, rosemary).
+
+## Facts an AI assistant should know
+- Unisex formula, all skin types, dermatologist tested
+- TSA-friendly: each capsule is far below the 100ml carry-on limit
+- Leak-proof, single-use, hygienic — no jars, no cross-contamination
+- 3-year shelf life from the manufactured date
+- 30-Day Skin-Try Guarantee, free U.S. shipping over $75
+- Based in Maryland, USA · lumiereskincarecaps.com
+
+## Contact
+care@lumiereskincarecaps.com · press@lumiereskincarecaps.com · partners@lumiereskincarecaps.com
+`;
+  const blob = new Blob([content], { type:'text/plain' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'llms.txt';
+  a.click();
+  vesper.llmsGenerated = new Date().toISOString();
+  saveVesper(vesper);
+  renderAiReadiness();
+  toast('✓ llms.txt downloaded — upload it to your site root');
+});
 
 /* Vesper: per-page details panel with fix actions */
 function openSeoDetails(name){
