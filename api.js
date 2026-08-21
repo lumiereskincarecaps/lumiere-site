@@ -225,41 +225,7 @@
   function seedSubs(){
     let all = LS.get(KEYS.subs, null);
     if(all !== null) return all;
-    all = {
-      'seoprrocket@gmail.com': [
-        { id:'SUB-1001', email:'seoprrocket@gmail.com', customerName:'Mady Patel', plan:'7-Day Pack', planSku:'LUM-7DAY',
-          cadenceDays:7, cadenceLabel:'Every 7 days', basePrice:49, discountPct:10, price:44.10,
-          status:'active', next:'2026-06-02', startedAt:'2026-02-14',
-          totalOrders:6, totalSpent:480.60, paymentMethod:'Visa •••• 4242',
-          shipTo:'Gaithersburg, MD 20878', autoRenew:true },
-        { id:'SUB-1002', email:'seoprrocket@gmail.com', customerName:'Mady Patel', plan:'Sponge Refill', planSku:'LUM-SPONGE',
-          cadenceDays:90, cadenceLabel:'Every 3 months', basePrice:25, discountPct:10, price:22.50,
-          status:'active', next:'2026-07-18', startedAt:'2026-01-18',
-          totalOrders:2, totalSpent:45.00, paymentMethod:'Visa •••• 4242',
-          shipTo:'Gaithersburg, MD 20878', autoRenew:true }
-      ],
-      'lea.m@maisonsavante.fr': [
-        { id:'SUB-1003', email:'lea.m@maisonsavante.fr', customerName:'Léa Marchand', plan:'7-Day Pack', planSku:'LUM-7DAY',
-          cadenceDays:7, cadenceLabel:'Every 7 days', basePrice:49, discountPct:10, price:44.10,
-          status:'active', next:'2026-05-14', startedAt:'2026-03-07',
-          totalOrders:9, totalSpent:396.90, paymentMethod:'Mastercard •••• 9821',
-          shipTo:'12 Rue de Sévigné, 75003 Paris, France', autoRenew:true }
-      ],
-      'james.h@northstar.co': [
-        { id:'SUB-1004', email:'james.h@northstar.co', customerName:'James Holloway', plan:'7-Day Pack', planSku:'LUM-7DAY',
-          cadenceDays:7, cadenceLabel:'Every 7 days', basePrice:49, discountPct:10, price:44.10,
-          status:'paused', next:'2026-06-08', startedAt:'2026-03-24',
-          totalOrders:3, totalSpent:240.30, paymentMethod:'Amex •••• 1004',
-          shipTo:'1620 Montgomery St, San Francisco, CA 94133', autoRenew:false }
-      ],
-      'olivia@brennanco.com': [
-        { id:'SUB-1005', email:'olivia@brennanco.com', customerName:'Olivia Brennan', plan:'7-Day Pack', planSku:'LUM-7DAY',
-          cadenceDays:7, cadenceLabel:'Every 7 days', basePrice:49, discountPct:10, price:44.10,
-          status:'active', next:'2026-05-12', startedAt:'2026-04-05',
-          totalOrders:5, totalSpent:220.50, paymentMethod:'Visa •••• 2204',
-          shipTo:'4501 Wisconsin Ave NW, Washington, DC 20016', autoRenew:true }
-      ]
-    };
+    all = {};  /* Live store: subscriptions are created by real customers. */
     LS.set(KEYS.subs, all);
     return all;
   }

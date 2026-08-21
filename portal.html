@@ -899,28 +899,12 @@
 
 /* ========= SAMPLE ORDER DATA ========= */
 const ORDERS = [
-  { id:'LUM-2826', customer:'Mady Patel', email:'seoprrocket@gmail.com', date:'2026-05-08', shipDate:'2026-05-09', deliveredDate:null, address:'Gaithersburg, MD 20878', status:'shipped', tracking:'1Z999AA10123456784', items:[{name:'7-Day Pack',meta:'7 sheets · 49 capsules',qty:1,price:49},{name:'Travel Size Box',meta:'Signature edition',qty:1,price:22}], shipping:0, tax:4.26 },
-  { id:'LUM-2825', customer:'James Holloway', email:'james.h@northstar.co', date:'2026-05-08', shipDate:null, deliveredDate:null, address:'1620 Montgomery St, San Francisco, CA 94133', status:'processing', tracking:null, items:[{name:'Deluxe Set',meta:'7-Day + Exfoliating Sponges',qty:1,price:69}], shipping:0, tax:5.52 },
-  { id:'LUM-2824', customer:'Priya Achar', email:'priya@madetomove.io', date:'2026-05-07', shipDate:null, deliveredDate:null, address:'88 Murray St, New York, NY 10007', status:'pending', tracking:null, items:[{name:'7-Day Pack',meta:'7 sheets · 84 capsules',qty:2,price:49}], shipping:0, tax:7.84 },
-  { id:'LUM-2823', customer:'Léa Marchand', email:'lea.m@maisonsavante.fr', date:'2026-05-07', shipDate:'2026-05-07', deliveredDate:'2026-05-09', address:'12 Rue de Sévigné, 75003 Paris, France', status:'delivered', tracking:'CP123456789FR', items:[{name:'7-Day Pack',meta:'7 sheets · 49 capsules',qty:1,price:49},{name:'Exfoliating Sponges',meta:'Set of 2 · standalone',qty:1,price:30}], shipping:22, tax:0 },
-  { id:'LUM-2822', customer:'Robin Sato', email:'r.sato@theheliogroup.jp', date:'2026-05-06', shipDate:'2026-05-06', deliveredDate:null, address:'3-1-1 Marunouchi, Chiyoda-ku, Tokyo 100-0005, Japan', status:'shipped', tracking:'JP9876543210', items:[{name:'3-Day Trial Pack',meta:'3 sheets · 36 capsules',qty:3,price:24}], shipping:25, tax:0 },
-  { id:'LUM-2821', customer:'Olivia Brennan', email:'olivia@brennanco.com', date:'2026-05-05', shipDate:'2026-05-05', deliveredDate:'2026-05-07', address:'4501 Wisconsin Ave NW, Washington, DC 20016', status:'delivered', tracking:'1Z999AA10123456111', items:[{name:'Deluxe Set',meta:'7-Day + Exfoliating Sponges',qty:1,price:69}], shipping:0, tax:5.52 },
-  { id:'LUM-2820', customer:'Thandi Okafor', email:'thandi@okaforstudio.com', date:'2026-05-05', shipDate:null, deliveredDate:null, address:'24 Long St, Cape Town, 8001, South Africa', status:'processing', tracking:null, items:[{name:'7-Day Pack',meta:'7 sheets · 49 capsules',qty:1,price:49},{name:'Travel Size Box',meta:'Signature edition',qty:1,price:22}], shipping:32, tax:0 },
-  { id:'LUM-2819', customer:'Mady Patel', email:'seoprrocket@gmail.com', date:'2026-04-22', shipDate:'2026-04-22', deliveredDate:'2026-04-25', address:'Gaithersburg, MD 20878', status:'delivered', tracking:'1Z999AA10123455999', items:[{name:'7-Day Pack',meta:'Subscription · -10%',qty:1,price:44.10}], shipping:0, tax:2.65 },
-  { id:'LUM-2818', customer:'Carlos Reyes', email:'c.reyes@solarwave.mx', date:'2026-04-20', shipDate:'2026-04-20', deliveredDate:'2026-04-26', address:'Av. Reforma 222, CDMX, Mexico', status:'delivered', tracking:'MX5544332211', items:[{name:'7-Day Pack',meta:'7 sheets · 84 capsules',qty:1,price:49}], shipping:32, tax:0 },
-  { id:'LUM-2817', customer:'Mady Patel', email:'seoprrocket@gmail.com', date:'2026-04-08', shipDate:'2026-04-08', deliveredDate:'2026-04-11', address:'Gaithersburg, MD 20878', status:'delivered', tracking:'1Z999AA10123455500', items:[{name:'Deluxe Set',meta:'Gift packaging',qty:1,price:69}], shipping:0, tax:5.52 },
-  { id:'LUM-2816', customer:'Aiko Tanaka', email:'aiko.t@mossandlight.com', date:'2026-04-03', shipDate:null, deliveredDate:null, address:'500 Bay St, Toronto, ON, Canada', status:'canceled', tracking:null, items:[{name:'7-Day Pack',meta:'7 sheets · 84 capsules',qty:1,price:49}], shipping:12, tax:0 }
+  /* Live store: real orders appear here as customers purchase. */
 ];
 
 /* ========= SUBSCRIPTIONS ========= */
 const SUBSCRIPTIONS = {
-  'seoprrocket@gmail.com': [
-    { plan:'7-Day Pack', meta:'Auto-renew', cadence:'Every 7 days', next:'Jun 2, 2026', price:44.10, status:'Active' },
-    { plan:'Sponge Refill', meta:'Quarterly', cadence:'Every 3 months', next:'Jul 18, 2026', price:22.50, status:'Active' }
-  ],
-  'lea.m@maisonsavante.fr': [
-    { plan:'7-Day Pack', meta:'Auto-renew', cadence:'Every 7 days', next:'May 14, 2026', price:44.10, status:'Active' }
-  ]
+  /* Live store: active subscriptions appear here as customers subscribe. */
 };
 
 /* ========= ADMIN EMAILS ========= */
@@ -1191,25 +1175,6 @@ function renderRewards(email, user){
 
   // Load saved rewards (referrals etc.) and merge
   const saved = loadRewards(email);
-  // Seed friend referrals based on user — Mady gets 8 friends as a demo
-  if(saved.friendsInvited === 0){
-    if(email === 'seoprrocket@gmail.com'){
-      Object.assign(saved, { friendsInvited:8, friendsPurchased:5, lifetimeEarned:100, credit:60 });
-      saved.activity = [
-        { time:'2 days ago', type:'earned', text:'<strong>+$10 store credit</strong> — Sarah K. used your link' },
-        { time:'1 week ago', type:'earned', text:'<strong>+$10 store credit</strong> — David M. used your link' },
-        { time:'2 weeks ago', type:'redeemed', text:'<strong>−200 points</strong> redeemed for $10 credit' },
-        { time:'3 weeks ago', type:'earned', text:'<strong>+125 points</strong> from order LUM-2819' }
-      ];
-      saveRewards(email, saved);
-    } else if(email === 'lea.m@maisonsavante.fr'){
-      Object.assign(saved, { friendsInvited:2, friendsPurchased:1, lifetimeEarned:20, credit:20 });
-      saved.activity = [
-        { time:'1 month ago', type:'earned', text:'<strong>+$10 store credit</strong> — friend used your link' }
-      ];
-      saveRewards(email, saved);
-    }
-  }
 
   const totalPoints = orderPoints + (saved.points || 0);
 
