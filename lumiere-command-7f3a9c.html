@@ -1536,16 +1536,29 @@ function renderActivity(){
 /* AGENT HEALTH (overview) */
 function renderAgentHealth(){
   const wrap = $('#agent-health');
-  wrap.innerHTML = AGENTS.map(a => `
-    <div class="activity-item">
+  wrap.innerHTML = AGENTS.map(a => {
+    const c = agentConnections(a.id);
+    const w = c.w || {};
+    const state = a.status === 'idle' ? { t:'Paused', col:'var(--ink-soft)' }
+                : c.ready ? { t:'Live', col:'var(--green)' }
+                : { t:'Simulated', col:'var(--amber)' };
+    return `
+    <div class="activity-item" style="cursor:pointer" data-agent-jump="${a.id}">
       <div class="activity-icon ${a.avatarClass}" style="color:#fff">${a.avatar}</div>
       <div>
         <div class="activity-text"><strong>${a.name}</strong> · <span style="color:var(--ink-soft);font-size:0.82rem">${a.role}</span></div>
-        <div style="font-size:0.78rem;color:var(--ink-soft);margin-top:0.15rem">${a.tasksToday} tasks today · ${a.accuracy} accuracy</div>
+        <div style="font-size:0.76rem;color:var(--ink-soft);margin-top:0.15rem">
+          Works in <strong>${w.label||'—'}</strong> · ${a.tasksToday} tasks today
+          ${c.missing && c.missing.length ? ' · needs ' + c.missing.join(', ') : ''}
+        </div>
       </div>
-      <span class="agent-status s-${a.status}" style="position:static">${a.statusLabel}</span>
-    </div>
-  `).join('');
+      <span class="agent-status" style="position:static;background:${state.col};color:#fff">${state.t}</span>
+    </div>`;
+  }).join('');
+  document.querySelectorAll('[data-agent-jump]').forEach(el => el.addEventListener('click', () => {
+    const w = AGENT_WIRING[el.dataset.agentJump];
+    if(w) switchView(w.view);
+  }));
 }
 
 /* ======================================================
@@ -1569,9 +1582,19 @@ function renderAgentGrid(){
         <div class="agent-stat"><div class="v">${a.accuracy}</div><span class="l">Accuracy</span></div>
       </div>
       <div class="agent-recent"><strong>Most recent:</strong> ${a.recent[0].text} <em style="color:var(--ink-soft);font-style:italic">· ${a.recent[0].time}</em></div>
+      ${(() => { const c = agentConnections(a.id); const w = c.w||{};
+        return `<div style="margin-top:0.9rem;padding-top:0.9rem;border-top:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:0.6rem;flex-wrap:wrap">
+          <span style="font-size:0.72rem;color:${c.ready?'var(--green)':'var(--amber)'};font-weight:600">${c.ready?'● Live · '+(w.live||''):'○ Simulated · needs '+(c.missing||[]).join(', ')}</span>
+          <button class="btn btn-sm btn-ghost" data-agent-goto="${a.id}" style="white-space:nowrap">Open ${w.label||''} →</button>
+        </div>`; })()}
     </article>
   `).join('');
   $$('.agent-card').forEach(c => c.addEventListener('click', () => openAgentPanel(c.dataset.agent)));
+  document.querySelectorAll('[data-agent-goto]').forEach(b => b.addEventListener('click', e => {
+    e.stopPropagation();
+    const w = AGENT_WIRING[b.dataset.agentGoto];
+    if(w) switchView(w.view);
+  }));
 }
 
 function openAgentPanel(id){
@@ -1582,6 +1605,17 @@ function openAgentPanel(id){
     <div class="panel-section">
       <h4>About</h4>
       <p style="font-size:0.92rem;line-height:1.7">${a.body}</p>
+    </div>
+    <div class="panel-section">
+      <h4>Connection Status</h4>
+      ${(() => { const c = agentConnections(a.id); const w = c.w||{};
+        return `<div style="padding:1rem 1.2rem;border-radius:10px;background:${c.ready?'#eef6ea':'#fff8e6'};border:1px solid ${c.ready?'var(--green)':'var(--amber)'}">
+          <div style="font-weight:600;color:${c.ready?'var(--green)':'#7a5518'};margin-bottom:0.4rem">${c.ready?'● Live':'○ Simulated'}</div>
+          <div style="font-size:0.88rem;color:var(--ink-soft)">${c.ready
+            ? w.live + '. Working in <strong>' + w.label + '</strong>.'
+            : 'Runs on demo data. Connect <strong>' + (c.missing||[]).join('</strong>, <strong>') + '</strong> in the Deploy tab to run live.'}</div>
+          <button class="btn btn-sm" style="margin-top:0.9rem" onclick="closePanel();switchView('${c.ready ? w.view : 'deploy'}')">${c.ready ? 'Open ' + w.label : 'Connect Services'}</button>
+        </div>`; })()}
     </div>
     <div class="panel-section">
       <h4>Capabilities</h4>
@@ -2948,6 +2982,27 @@ const SERVICES = [
   { key:'ga4',       name:'Google Analytics', role:'Analytics',       icon:'G',  iconCls:'ic-ga4',       desc:'Track conversions, funnels, traffic sources. Free tier sufficient for most stores.', docs:'https://analytics.google.com' }
 ];
 
+
+/* Where each agent works, and what it needs to run for real */
+const AGENT_WIRING = {
+  aurora: { view:'subscriptions', label:'Subscriptions & Orders', needs:['stripe'],            live:'Reads live orders and subscriptions' },
+  sage:   { view:'inquiries',     label:'Inquiries',              needs:['resend','anthropic'], live:'Drafts replies to real inquiries' },
+  mercer: { view:'refunds',       label:'Refunds',                needs:['stripe','anthropic'], live:'Scores and processes real refunds' },
+  vesper: { view:'seo',           label:'SEO Agent',              needs:['anthropic'],          live:'Audits pages and applies fixes' },
+  roan:   { view:'subscriptions', label:'Inventory & Supply',     needs:['supabase','shippo'],  live:'Tracks stock and reorder points' },
+  nova:   { view:'ambassadors',   label:'Ambassadors',            needs:['stripe'],             live:'Manages tiers, codes and payouts' },
+  lyra:   { view:'journal',       label:'Marketing & Campaigns',  needs:['klaviyo','anthropic'],live:'Writes campaigns and email flows' },
+  sable:  { view:'journal',       label:'Journal',                needs:['anthropic'],          live:'Drafts and publishes articles' }
+};
+function agentConnections(id){
+  const w = AGENT_WIRING[id];
+  if(!w) return { ready:false, missing:[] };
+  let conns = {};
+  try { conns = (JSON.parse(localStorage.getItem('lumiere_deploy_state'))||{}).connections || {}; } catch(e){}
+  const missing = w.needs.filter(k => !conns[k]);
+  return { ready: missing.length === 0, missing, w };
+}
+
 let deployState = loadDeployState();
 let isDeploying = false;
 let logs = [];
@@ -3039,6 +3094,8 @@ function renderDeploy(){
     s.connections[k] = false;
     saveDeployState(s);
     addLog('warn', `${SERVICES.find(x=>x.key===k).name} disconnected (credentials kept)`);
+    if(typeof renderAgentGrid === 'function') renderAgentGrid();
+    if(typeof renderAgentHealth === 'function') renderAgentHealth();
     toast(`${SERVICES.find(x=>x.key===k).name} disconnected`);
     renderDeploy();
   }));
@@ -3319,6 +3376,8 @@ function openServiceConnect(k){
     s.connections[k] = true;
     saveDeployState(s);
     addLog('success', `✓ ${svc.name} connected — ${fields.filter(f=>(cfg[f.key]||'').trim()).length} env var(s) synced`);
+    if(typeof renderAgentGrid === 'function') renderAgentGrid();
+    if(typeof renderAgentHealth === 'function') renderAgentHealth();
     toast(`✓ ${svc.name} connected`);
     closePanel();
     renderDeploy();
